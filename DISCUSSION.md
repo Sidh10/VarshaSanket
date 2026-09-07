@@ -983,6 +983,21 @@ not sent (no credentials in env; recipient_in_session=False (no confirmed opt-in
 
 This is **not** a full opt-in registry — tracking real inbound timestamps per farmer is production work (path b). It converts a silent assumption into a declared precondition.
 
+#### `rehearse_live_send.py` — a real send, run once before presenting (added 2026-09-08)
+
+`src/delivery/rehearse_live_send.py` is a **standalone** rehearsal script that sends **one real WhatsApp message** to the demo phone every time it succeeds. It is deliberately kept apart from the offline demo:
+
+- **Never runs in the regression suite.** It refuses to run without an explicit `--confirm-live-send` flag (exit 2 otherwise), is named `rehearse_*` so no test collector picks it up, and is imported by nothing. `src/demo/run_demo.py` stays fully offline and idempotent.
+- **Sends the real 2018-07-15 soybean advisory**, not a `"test"` string — the canonical Phase 4b output (`case.decide_at(case.l_reseed_default)` → `advisory.render`, WAIT, θ=1.5, 1067 chars, both evidence lines, ICAR disclosure). This is the only way to confirm it renders on a physical phone: line breaks, length, no cut-off — which the browser demo can't check. The full text is printed before sending, with a warning if it exceeds WhatsApp's 1600-char single-message limit.
+- **Four env vars required**, checked up front with the *specific* missing name(s) rather than a deep auth error: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` (sandbox number), and **`VARSHASANKET_DEMO_TO`** (the demo phone, E.164) — a new variable this script introduces.
+- **Checks `SendResult.status`, not just exception-or-not.** Twilio can return a failure status without raising. Outcomes:
+  - accepted (SID present, status not `failed`/`undelivered`) → prints the SID and *"delivered — check the demo phone now"* + a reminder to eyeball the rendering. Exit 0.
+  - session-window failure (`63015`/`63016`, via `SendResult.session_window_closed`) → prints the plain-language fix: message the sandbox number `<from>` the join phrase from the demo phone, wait for the connected reply, re-run. Exit 1. **No raw Twilio dump.**
+  - any other failure → Twilio's verbatim `status` + `error_code`, not generalized. Exit 1.
+- **`SendResult` gained** `error_code: int | None` plus `session_window_closed` / `accepted_for_delivery` properties, so the script reads structured fields instead of string-parsing `status`.
+
+**When to run it: a few MINUTES before presenting, not seconds.** If the session window has closed, the fix is to opt in from the demo phone and wait for it to register — that needs slack, not a countdown. Running it seconds before the demo defeats the purpose.
+
 #### Superseded
 `src/models/decision_engine.py::advisory_text` is now a **terse inline preview for the Stage 4 worked example only** — its docstring says so and points to `src/delivery/advisory.py::render` as the real path. Not left as a competing implementation.
 

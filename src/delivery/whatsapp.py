@@ -78,6 +78,20 @@ class SendResult:
     body: str
     sid: str | None
     status: str
+    error_code: int | None = None  # Twilio code on a hard failure; None otherwise
+
+    @property
+    def session_window_closed(self) -> bool:
+        """True when the failure was the recipient being outside the 24h window
+        / never opted in (D-21). Lets a caller give the specific fix without
+        string-parsing `status`."""
+        return self.error_code in _OUT_OF_SESSION_CODES
+
+    @property
+    def accepted_for_delivery(self) -> bool:
+        """Twilio took the message (has a SID and the status is not a hard-fail).
+        Actual delivery is asynchronous -- confirm on the phone."""
+        return self.sid is not None and self.status not in ("failed", "undelivered")
 
     def describe(self) -> str:
         head = "DRY RUN (not sent)" if self.dry_run else f"SENT sid={self.sid} status={self.status}"
@@ -176,6 +190,7 @@ class WhatsAppSender:
                 body=advisory.text,
                 sid=None,
                 status=f"send failed (Twilio {e.code}: {e.msg}){hint}",
+                error_code=e.code,
             )
         return SendResult(
             dry_run=False,

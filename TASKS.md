@@ -210,6 +210,7 @@ Resolves the open question above: `divided` analog evidence stays in the API, is
 - [x] Old "backtest number" slot → **Stage 1 base rate + block-bootstrap CI**, exact advisory wording ("based on 20-year averages… not a forecast for this year"), explicit *"no accuracy/skill figure is shown"* note (D-14–D-17). **No manufactured skill number.**
 - [x] Full advisory rendered exactly as Phase 4b built it — both evidence lines, ICAR disclosure in the message body, single-region risk SVG with "not resolved to individual blocks" baked into the image.
 - [x] **Rehearse-until-flawless (headless):** `run_demo --repeat 5` → 5 identical payload hashes, ~26 s each, zero manual intervention, no live IMD call (asserts the bulletin cache).
+- [x] **Live-send rehearsal (real WhatsApp message):** `python -m src.delivery.rehearse_live_send --confirm-live-send` — standalone, refuses to run without the flag, never in the regression suite. Sends the real 2018 advisory to `VARSHASANKET_DEMO_TO`; checks `SendResult.status`; on a 63015/63016 session-window failure prints the plain-language opt-in fix. **Run once, a few minutes before presenting** (D-21). Needs `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_WHATSAPP_FROM` / `VARSHASANKET_DEMO_TO`.
 - [x] **Scope held:** one case, one slider variable. No second district, no crop dropdown, no date picker.
 
 ---
