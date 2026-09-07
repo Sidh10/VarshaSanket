@@ -1,0 +1,37 @@
+========================================================================
+PHASE 5 DEMO -- headless end-to-end, 2018-07-15 soybean
+========================================================================
+
+--- run 1/5 ---
+  theta recommendation flip : 0.958 (expected ~0.95)
+  theta robust boundary     : 0.775 (expected ~0.75)
+    transition @theta 0.775: ('sow', True) -> ('sow', False)
+    transition @theta 0.958: ('sow', False) -> ('wait', False)
+    transition @theta 1.142: ('wait', False) -> ('wait', True)
+  effective-N stage 1       : 20 monsoon seasons
+  effective-N stage 2       : 4.99 effective analog seasons (of 5 shown)
+  advisory evidence lines   : 2
+  ICAR disclosure in text   : True
+  risk svg 'not resolved'   : baked in
+  payload hash              : 62cd913a03293497
+  (26.9s)
+
+--- run 2/5 ---
+  (25.6s)
+
+--- run 3/5 ---
+  (25.7s)
+
+--- run 4/5 ---
+  (26.0s)
+
+--- run 5/5 ---
+  (25.3s)
+
+========================================================================
+DETERMINISM: 5 runs, IDENTICAL payload hash
+NO LIVE IMD CALL: prior built from cached data (asserted in build_case)
+GATE: PASS -- demo is end-to-end and not flaky
+========================================================================
+
+wrote artifacts/demo_2018_endtoend.txt

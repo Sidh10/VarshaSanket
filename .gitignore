@@ -36,3 +36,7 @@ Thumbs.db
 !/artifacts/stage4_decision_example.txt
 !/artifacts/delivery_demo_2018.txt
 !/artifacts/delivery_risk_indicator_2018.svg
+!/artifacts/demo_2018_endtoend.txt
+!/artifacts/demo_2018_endtoend_run.txt
+!/artifacts/demo_2018_risk.svg
+!/artifacts/demo_2018_snapshot.html

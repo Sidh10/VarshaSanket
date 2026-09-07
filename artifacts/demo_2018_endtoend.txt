@@ -1,0 +1,13 @@
+PHASE 5 DEMO -- headless end-to-end check
+case: 2018-07-15, soybean (fixed; only l_reseed varies)
+
+run 1: hash=62cd913a03293497  26.9s
+run 2: hash=62cd913a03293497  25.6s
+run 3: hash=62cd913a03293497  25.7s
+run 4: hash=62cd913a03293497  26.0s
+run 5: hash=62cd913a03293497  25.3s
+
+determinism: IDENTICAL across 5 runs
+theta thresholds (from the real decision engine):
+  recommendation flip SOW->WAIT : theta ~ 0.95
+  robust -> fragile boundary    : theta ~ 0.75

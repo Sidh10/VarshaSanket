@@ -202,11 +202,15 @@ Resolves the open question above: `divided` analog evidence stays in the API, is
 
 ## Phase 5 — Demo
 
-- [ ] Pre-baked, guaranteed-working demo case for one district
-- [ ] Live θ slider (SOW ↔ WAIT flip is the strongest interactive moment)
-- [ ] Effective analog count visible in the demo UI
-- [ ] Backtest number on screen with event count stated
-- [ ] Rehearse until flawless
+### Built 2026-09-08 — `src/demo/`, see DISCUSSION **D-22**. Run: `python -m src.demo.server` (live) / `python -m src.demo.run_demo` (headless check)
+
+- [x] Pre-baked demo case — **2018-07-15, soybean, fixed** (`src/demo/case.py`). MCZ-regional, not a district (Stage 1's actual scale). The one `leaning` analog year, so both evidence lines are farmer-facing. Only `l_reseed` varies.
+- [x] **Live θ slider** — stdlib `http.server`; every slider event → `/api/decide` → real `decide()` → `_expected_loss()`. No lookup table. Verified over HTTP by `src/demo/smoke_server.py`. Three real transitions shown: θ≈0.77 sow robust→fragile, **θ≈0.95 SOW→WAIT** (the recommendation flip — D-20's "θ≈0.75" was the *robustness* boundary, corrected in D-22), θ≈1.14 wait fragile→robust.
+- [x] **Both effective-N figures on-screen at all times, labelled separately, never merged** — Stage 1 `20 monsoon seasons` (year count) vs Stage 2 `4.99 effective analog seasons` (entropy concentration, explicit "NOT a confidence"). *(Task said ~3.8; that's the 2019 value — 2018's analogs are closer, so 4.99. D-22.)*
+- [x] Old "backtest number" slot → **Stage 1 base rate + block-bootstrap CI**, exact advisory wording ("based on 20-year averages… not a forecast for this year"), explicit *"no accuracy/skill figure is shown"* note (D-14–D-17). **No manufactured skill number.**
+- [x] Full advisory rendered exactly as Phase 4b built it — both evidence lines, ICAR disclosure in the message body, single-region risk SVG with "not resolved to individual blocks" baked into the image.
+- [x] **Rehearse-until-flawless (headless):** `run_demo --repeat 5` → 5 identical payload hashes, ~26 s each, zero manual intervention, no live IMD call (asserts the bulletin cache).
+- [x] **Scope held:** one case, one slider variable. No second district, no crop dropdown, no date picker.
 
 ---
 

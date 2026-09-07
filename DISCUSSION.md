@@ -1002,6 +1002,54 @@ IMPORTANT: the rupee figures above are illustrative examples, not verified local
 
 1067 chars (within WhatsApp's 1600-char single-message limit). 2018 was chosen deliberately: it is the one `leaning` analog year (D-19), so the seasonal-analog line *is* farmer-facing here; for the 19 `divided` years only the bulletin line would appear.
 
+### D-22: Phase 5 demo — live θ slider on the real engine; two D-20/premise corrections — **BUILT**
+
+Run: `python -m src.demo.server` → http://localhost:8765 (live) · `python -m src.demo.run_demo` (headless gate) · `python -m src.demo.smoke_server` (HTTP smoke). Logs: `artifacts/demo_2018_endtoend*.txt`, offline snapshot `artifacts/demo_2018_snapshot.html`, `artifacts/demo_2018_risk.svg`.
+
+#### Built
+`src/demo/case.py` (the one fixed case), `payload.py` (case → UI JSON, all from real pipeline fns), `server.py` (stdlib `http.server`, threading, no new deps), `run_demo.py` (headless 5× determinism gate), `smoke_server.py` (HTTP-path check).
+
+**Case is hard-fixed: 2018-07-15, soybean.** The only thing that varies at demo time is `l_reseed` (→ θ = l_reseed / l_delay, l_delay fixed). No date picker, no crop dropdown, no second district — Phase 5's "protect the MVP" line, held.
+
+#### The θ slider is the real engine, not an animation
+Every slider `input` event hits `GET /api/decide?l_reseed=<n>`, which calls `build_payload()` → `decide()` → `_expected_loss()`. There is **no precomputed grid** in the live path. Computation is microseconds; the response is immediate. `smoke_server.py` confirms the SOW↔WAIT flip is reachable over actual HTTP (`lr=5000 → SOW`, `lr=25000 → WAIT`).
+
+#### Correction to D-20 — "θ ≈ 0.75" was the wrong threshold
+D-20 wrote *"the theta sweep flips to SOW at L_reseed ≤ 9,000 (theta ≤ 0.75)"*. That conflated two different things. The real decision engine, swept finely for this case, has **three** transitions as θ rises:
+
+| θ | transition | meaning |
+|---|---|---|
+| **≈ 0.77** | (sow, robust) → (sow, fragile) | SOW stops holding across the uncertainty envelope. **This is the number D-20 meant.** |
+| **≈ 0.95** | (sow, fragile) → (wait, fragile) | **the point-estimate recommendation itself flips SOW → WAIT** |
+| **≈ 1.14** | (wait, fragile) → (wait, robust) | WAIT becomes robust |
+
+The UI shows all three regimes and labels them (`robust across uncertainty` vs `FRAGILE - band straddles the decision`). `run_demo.py` re-derives both thresholds from `decide()` and asserts them (`THETA_RECOMMENDATION_FLIP=0.95`, `THETA_ROBUST_BOUNDARY=0.75`). The "strongest interactive moment" is still real — it's just at θ≈0.95, with a fragility band opening at θ≈0.77 first.
+
+#### Correction to the task premise — analog effective-N is 4.99 here, not ~3.8
+The task said *"Stage 2's seasonal_analog_effective_n (~3.8 for this case)"*. **3.8 is the 2019 value** (D-18 schema example). For **2018** — the `leaning` year — the K=5 nearest analogs are tighter (distances 0.57–0.89 vs 2019's 0.68–2.23), so the entropy-based effective size is higher: **4.99**. The demo shows the correct 2018 value.
+
+#### Two effective-N figures, shown always, never merged
+| | Stage 1 | Stage 2 |
+|---|---|---|
+| value | **20 monsoon seasons** | **4.99 effective analog seasons (of 5 shown)** |
+| kind | a count of independent observed years | an entropy concentration measure |
+| UI label | "independent years of observed data behind the base rate" | "how concentrated the nearest-analog set is; **NOT a confidence in the probability**" |
+| border colour | blue | purple |
+
+They are separate JSON fields with different `unit` strings; `run_demo.py` asserts `stage1.unit != stage2.unit`. The UI has no "confidence" number that fuses them.
+
+#### The old "backtest number" slot → base rate + CI, no skill figure
+Replaced with Stage 1's climatological P(regime) + block-bootstrap 95% CI, carrying the **exact advisory wording** *"Based on 20-year averages for this date (2000-2019), not a forecast for this year"* plus an explicit line: *"No accuracy/skill figure is shown: the isolation tests (D-14 to D-17) found none that is honest for this pipeline."* `run_demo.py` asserts no skill/accuracy field leaks into the base-rate payload.
+
+#### The advisory is the real Phase 4b output, not a demo cut
+Rendered via `delivery.advisory.render()` — both evidence lines (2018 is `leaning`, so the seasonal-analog line **is** farmer-facing here, alongside the bulletin trough line), the ICAR disclosure **in the message body**, and the single-region risk SVG with *"regional estimate, NOT resolved to individual blocks or villages"* baked into the image. 1060 chars.
+
+#### Rehearse-until-flawless, headless
+`run_demo --repeat 5`: **5 runs, identical payload hash `62cd913a…`, ~26 s each, no manual step.** `build_case()` asserts the bulletin cache exists rather than fetching — **no live internal.imd.gov.in dependency on demo day** (Phase 4b cached it for exactly this reason).
+
+#### Screenshots taken during the build
+Live browser: default θ=1.5 → **WAIT** (robust), E[sow] 7,692 / E[wait] 4,888; slider dragged to θ=0.65 → **SOW** (robust), E[sow] 3,333 / E[wait] 4,888 — the bars swap, the badge flips, driven by the real function. Advisory + SVG render verified via DOM inspection.
+
 ---
 
 ## Handoff notes
