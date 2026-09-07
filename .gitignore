@@ -1,0 +1,31 @@
+# Data — acquired via src/data/, never committed (IMD GRD ~490 MB, IWB caches).
+# Loaders recreate these directories and re-fetch on demand.
+/data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+
+# HuggingFace / fsspec local caches
+.cache/
+*.lock
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Artifacts: keep the Phase 1 gate evidence (referenced by DISCUSSION D-14),
+# ignore anything larger that future runs might drop here.
+/artifacts/*
+!/artifacts/phase1_run_log.txt
+!/artifacts/phase1_stage1_validation.json
+!/artifacts/phase1_*_per_year_lead*.csv

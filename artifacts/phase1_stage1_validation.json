@@ -1,0 +1,308 @@
+{
+  "years": [
+    2000,
+    2019
+  ],
+  "target_window_days": 7,
+  "publication_lags": {
+    "nino34": 7,
+    "dmi": 30,
+    "rmm": 2,
+    "aux": 1
+  },
+  "gate_2week_cleared_overall": false,
+  "gate_by_season": {
+    "JJAS (primary)": false,
+    "Jul-Aug (strict Rajeevan, sensitivity)": false
+  },
+  "seasons": {
+    "JJAS (primary)": {
+      "months": [
+        6,
+        9
+      ],
+      "label_leakage_days_changed": 45,
+      "label_leakage_days_total": 2440,
+      "n_features": 41,
+      "label_days": {
+        "transition": 1982,
+        "active": 233,
+        "break": 225
+      },
+      "label_spells": {
+        "active": 56,
+        "break": 40
+      },
+      "leads": [
+        {
+          "lead_days": 7,
+          "n_samples": 2180,
+          "event_days": {
+            "active": 165,
+            "break": 192,
+            "transition": 1823
+          },
+          "target_spells": {
+            "active": 28,
+            "break": 28
+          },
+          "bs_model": 0.3086508118463629,
+          "bs_climatology": 0.298451734083174,
+          "bs_persistence": 0.6165137614678899,
+          "bs_seasonal_only": 0.30519224190887184,
+          "bs_logistic": 0.301463511036179,
+          "bss_vs_climatology": -0.034173290346326324,
+          "bss_vs_persistence": 0.49936103435634593,
+          "bss_seasonal_only_vs_clim": -0.022584917612907374,
+          "bss_logistic_vs_clim": -0.010091336752513946,
+          "bss_per_class": {
+            "active": -0.022719165515495465,
+            "break": 0.013870424646602375,
+            "transition": -0.06836635311987238
+          },
+          "bss_ci95": [
+            -0.07238950506431828,
+            0.009883864107388597
+          ]
+        },
+        {
+          "lead_days": 14,
+          "n_samples": 2040,
+          "event_days": {
+            "active": 148,
+            "break": 182,
+            "transition": 1710
+          },
+          "target_spells": {
+            "active": 28,
+            "break": 27
+          },
+          "bs_model": 0.29892008890338,
+          "bs_climatology": 0.29468133104001404,
+          "bs_persistence": 0.596078431372549,
+          "bs_seasonal_only": 0.302317531498894,
+          "bs_logistic": 0.3057939803217841,
+          "bss_vs_climatology": -0.014384209031519601,
+          "bss_vs_persistence": 0.4985222192739348,
+          "bss_seasonal_only_vs_clim": -0.025913417833188346,
+          "bss_logistic_vs_clim": -0.0377107339733751,
+          "bss_per_class": {
+            "active": -0.024472213587878322,
+            "break": 0.009157389548617667,
+            "transition": -0.023581890178332232
+          },
+          "bss_ci95": [
+            -0.05612209509553246,
+            0.03296475948689812
+          ]
+        },
+        {
+          "lead_days": 21,
+          "n_samples": 1900,
+          "event_days": {
+            "active": 142,
+            "break": 167,
+            "transition": 1591
+          },
+          "target_spells": {
+            "active": 25,
+            "break": 24
+          },
+          "bs_model": 0.3130670136202398,
+          "bs_climatology": 0.2962255698753457,
+          "bs_persistence": 0.6168421052631579,
+          "bs_seasonal_only": 0.3041925792731489,
+          "bs_logistic": 0.31684769016223735,
+          "bss_vs_climatology": -0.056853443651002644,
+          "bss_vs_persistence": 0.4924681519808398,
+          "bss_seasonal_only_vs_clim": -0.026895076617308167,
+          "bss_logistic_vs_clim": -0.06961627348904953,
+          "bss_per_class": {
+            "active": -0.06365346762872193,
+            "break": -0.031145549110405568,
+            "transition": -0.06864739400850284
+          },
+          "bss_ci95": [
+            -0.10517123488109725,
+            -0.00045701370277970074
+          ]
+        },
+        {
+          "lead_days": 28,
+          "n_samples": 1760,
+          "event_days": {
+            "active": 129,
+            "break": 153,
+            "transition": 1478
+          },
+          "target_spells": {
+            "active": 24,
+            "break": 21
+          },
+          "bs_model": 0.28948070527383624,
+          "bs_climatology": 0.29210840540740707,
+          "bs_persistence": 0.6318181818181818,
+          "bs_seasonal_only": 0.299848505928451,
+          "bs_logistic": 0.30389604301282885,
+          "bss_vs_climatology": 0.008995633418716453,
+          "bss_vs_persistence": 0.5418290995665902,
+          "bss_seasonal_only_vs_clim": -0.026497356384691306,
+          "bss_logistic_vs_clim": -0.04035364059100388,
+          "bss_per_class": {
+            "active": 0.030916877190417358,
+            "break": 0.021680864524573518,
+            "transition": -0.009683583638111504
+          },
+          "bss_ci95": [
+            -0.04103343242680575,
+            0.06094560645743365
+          ]
+        }
+      ]
+    },
+    "Jul-Aug (strict Rajeevan, sensitivity)": {
+      "months": [
+        7,
+        8
+      ],
+      "label_leakage_days_changed": 16,
+      "label_leakage_days_total": 1240,
+      "n_features": 41,
+      "label_days": {
+        "transition": 1001,
+        "break": 122,
+        "active": 117
+      },
+      "label_spells": {
+        "active": 31,
+        "break": 23
+      },
+      "leads": [
+        {
+          "lead_days": 7,
+          "n_samples": 980,
+          "event_days": {
+            "active": 56,
+            "break": 80,
+            "transition": 844
+          },
+          "target_spells": {
+            "active": 13,
+            "break": 13
+          },
+          "bs_model": 0.25844597206657255,
+          "bs_climatology": 0.2570315999025507,
+          "bs_persistence": 0.5755102040816327,
+          "bs_seasonal_only": 0.26400578389220153,
+          "bs_logistic": 0.29261655443607326,
+          "bss_vs_climatology": -0.0055027170377419665,
+          "bss_vs_persistence": 0.550927211657374,
+          "bss_seasonal_only_vs_clim": -0.027133566426443156,
+          "bss_logistic_vs_clim": -0.13844583524754928,
+          "bss_per_class": {
+            "active": -0.03882705956489674,
+            "break": -0.003892612644920579,
+            "transition": 0.008435800824806994
+          },
+          "bss_ci95": [
+            -0.04263213469971619,
+            0.04645522425659845
+          ]
+        },
+        {
+          "lead_days": 14,
+          "n_samples": 840,
+          "event_days": {
+            "active": 49,
+            "break": 69,
+            "transition": 722
+          },
+          "target_spells": {
+            "active": 10,
+            "break": 12
+          },
+          "bs_model": 0.26232464338334505,
+          "bs_climatology": 0.25923702719968966,
+          "bs_persistence": 0.5928571428571429,
+          "bs_seasonal_only": 0.26582508076720546,
+          "bs_logistic": 0.2738810397248754,
+          "bss_vs_climatology": -0.011910398051575344,
+          "bss_vs_persistence": 0.5575246979076107,
+          "bss_seasonal_only_vs_clim": -0.025413243002671226,
+          "bss_logistic_vs_clim": -0.056488892359907616,
+          "bss_per_class": {
+            "active": -0.057974339464932356,
+            "break": -0.019337353260295842,
+            "transition": 0.013744961710880577
+          },
+          "bss_ci95": [
+            -0.07315426384375671,
+            0.05284724273571406
+          ]
+        },
+        {
+          "lead_days": 21,
+          "n_samples": 700,
+          "event_days": {
+            "active": 46,
+            "break": 61,
+            "transition": 593
+          },
+          "target_spells": {
+            "active": 10,
+            "break": 10
+          },
+          "bs_model": 0.3027597507003192,
+          "bs_climatology": 0.28073453167213247,
+          "bs_persistence": 0.6028571428571429,
+          "bs_seasonal_only": 0.28767091413155355,
+          "bs_logistic": 0.3450191564376813,
+          "bss_vs_climatology": -0.07845568159000038,
+          "bss_vs_persistence": 0.4977918827245891,
+          "bss_seasonal_only_vs_clim": -0.024707977383851,
+          "bss_logistic_vs_clim": -0.22898723709780833,
+          "bss_per_class": {
+            "active": -0.07360891032810324,
+            "break": -0.11291098638965624,
+            "transition": -0.059421552134659494
+          },
+          "bss_ci95": [
+            -0.19118194030461086,
+            0.0049755508845066125
+          ]
+        },
+        {
+          "lead_days": 28,
+          "n_samples": 560,
+          "event_days": {
+            "active": 30,
+            "break": 51,
+            "transition": 479
+          },
+          "target_spells": {
+            "active": 7,
+            "break": 9
+          },
+          "bs_model": 0.29087456821099233,
+          "bs_climatology": 0.266603738870856,
+          "bs_persistence": 0.625,
+          "bs_seasonal_only": 0.273228341096745,
+          "bs_logistic": 0.2906927260611243,
+          "bss_vs_climatology": -0.0910370928889832,
+          "bss_vs_persistence": 0.5346006908624122,
+          "bss_seasonal_only_vs_clim": -0.024848121987883998,
+          "bss_logistic_vs_clim": -0.09035502387285388,
+          "bss_per_class": {
+            "active": -0.03800406829107805,
+            "break": -0.08526305885561247,
+            "transition": -0.11661219958125946
+          },
+          "bss_ci95": [
+            -0.2151400555740227,
+            0.012877485740020215
+          ]
+        }
+      ]
+    }
+  }
+}

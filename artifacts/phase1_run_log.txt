@@ -1,0 +1,202 @@
+==============================================================================
+VarshaSanket -- STAGE 1 REGIME FORECASTER -- Phase 1 isolation validation
+==============================================================================
+
+[1/5] IMD gridded rainfall -> monsoon core zone daily mean
+   MCZ mean daily rainfall | 2000-2019 | 7305 days | 2684 valid 0.25deg cells | lat 18.0-28.0N lon 66.5-88.0E
+
+[2/5] Teleconnection indices (native cadences)
+  nino34   2348 pts  1981-09-02 -> 2026-08-26  (weekly, NOAA CPC)
+  dmi      1884 pts  1870-01-01 -> 2026-12-01  (monthly, NOAA PSL)
+  rmm1    19090 pts  1974-06-01 -> 2026-09-05  (daily, BOM)
+  rmm2    19090 pts  1974-06-01 -> 2026-09-05  (daily, BOM)
+
+[3/5] IndiaWeatherBench auxiliary fields (coarse H500 / T850 over MCZ)
+   IWB aux fields | 2000-04-01 -> 2019-10-16 | 3680 days | cols ['h500', 't850', 't850_grad'] | MCZ 18.00-28.00N 65.00-88.00E (-1 pts) | 0 MB fetched
+
+##############################################################################
+# SEASON DEFINITION: JJAS (primary)   months=(6, 9)
+##############################################################################
+
+[4/5] Rajeevan active/break/transition labels
+Rajeevan labels | months (6, 9) | +/-1.0 SD sustained >=3d | clim smoothing +/-7d
+  days:   active=233  break=225  transition=1982  total=2440
+  spells: active=56  break=40
+  label leakage check: relabelling leave-one-year-out changes 45/2440 days (1.84%) -- reported, not assumed negligible
+
+   features | 2440 issue dates x 41 columns | 2000-06-01 -> 2019-09-30
+    trajectory lags (days): [0, 5, 10, 15, 20, 25, 30]
+    publication lags applied: {'nino34': 7, 'dmi': 30, 'rmm': 2, 'aux': 1}
+   rows dropped for incomplete predictors: 0/2440
+
+[5/5] Leave-one-year-out backtest across 20 years, per lead
+      baselines: day-of-year climatology + hard persistence
+      NO feature selection anywhere (Michaelsen 1987: screening is
+      the largest source of artificial skill).
+      Capacity IS selected, but only by inner GroupKFold over the
+      training years -- the held-out year is never touched.
+
+--- LEAD 1 WEEK (7 days) ---
+  samples 2180 over 20 held-out years
+  target regime days: {'active': 165, 'break': 192, 'transition': 1823}
+  target spells:      {'active': 28, 'break': 28}
+  Brier  model=0.3087  climatology=0.2985  persistence=0.6165  seasonal-only=0.3052  logistic=0.3015
+  BSS vs climatology  = -0.0342  [95% block-bootstrap CI -0.0724, +0.0099]
+  BSS vs persistence  = +0.4994
+  seasonal-only BSS   = -0.0226  (collapse test: full model must beat this)
+  logistic diag BSS   = -0.0101  (signal-vs-capacity diagnostic)
+  per-class BSS       = active=-0.0227  break=+0.0139  transition=-0.0684
+  beats climatology (skill>0 and CI excludes 0): NO
+
+--- LEAD 2 WEEK (14 days) ---
+  samples 2040 over 20 held-out years
+  target regime days: {'active': 148, 'break': 182, 'transition': 1710}
+  target spells:      {'active': 28, 'break': 27}
+  Brier  model=0.2989  climatology=0.2947  persistence=0.5961  seasonal-only=0.3023  logistic=0.3058
+  BSS vs climatology  = -0.0144  [95% block-bootstrap CI -0.0561, +0.0330]
+  BSS vs persistence  = +0.4985
+  seasonal-only BSS   = -0.0259  (collapse test: full model must beat this)
+  logistic diag BSS   = -0.0377  (signal-vs-capacity diagnostic)
+  per-class BSS       = active=-0.0245  break=+0.0092  transition=-0.0236
+  beats climatology (skill>0 and CI excludes 0): NO
+
+--- LEAD 3 WEEK (21 days) ---
+  samples 1900 over 20 held-out years
+  target regime days: {'active': 142, 'break': 167, 'transition': 1591}
+  target spells:      {'active': 25, 'break': 24}
+  Brier  model=0.3131  climatology=0.2962  persistence=0.6168  seasonal-only=0.3042  logistic=0.3168
+  BSS vs climatology  = -0.0569  [95% block-bootstrap CI -0.1052, -0.0005]
+  BSS vs persistence  = +0.4925
+  seasonal-only BSS   = -0.0269  (collapse test: full model must beat this)
+  logistic diag BSS   = -0.0696  (signal-vs-capacity diagnostic)
+  per-class BSS       = active=-0.0637  break=-0.0311  transition=-0.0686
+  beats climatology (skill>0 and CI excludes 0): NO
+
+--- LEAD 4 WEEK (28 days) ---
+  samples 1760 over 20 held-out years
+  target regime days: {'active': 129, 'break': 153, 'transition': 1478}
+  target spells:      {'active': 24, 'break': 21}
+  Brier  model=0.2895  climatology=0.2921  persistence=0.6318  seasonal-only=0.2998  logistic=0.3039
+  BSS vs climatology  = +0.0090  [95% block-bootstrap CI -0.0410, +0.0609]
+  BSS vs persistence  = +0.5418
+  seasonal-only BSS   = -0.0265  (collapse test: full model must beat this)
+  logistic diag BSS   = -0.0404  (signal-vs-capacity diagnostic)
+  per-class BSS       = active=+0.0309  break=+0.0217  transition=-0.0097
+  beats climatology (skill>0 and CI excludes 0): NO
+
+==============================================================================
+SUMMARY [JJAS (primary)] -- BSS vs day-of-year climatology, per lead
+==============================================================================
+  lead      n   BSS vs clim                 95% CI  BSS vs pers   seas-only   logistic  beats clim
+   1wk   2180       -0.0342   [-0.0724, +0.0099]      +0.4994     -0.0226    -0.0101          NO
+   2wk   2040       -0.0144   [-0.0561, +0.0330]      +0.4985     -0.0259    -0.0377          NO
+   3wk   1900       -0.0569   [-0.1052, -0.0005]      +0.4925     -0.0269    -0.0696          NO
+   4wk   1760       +0.0090   [-0.0410, +0.0609]      +0.5418     -0.0265    -0.0404          NO
+
+##############################################################################
+# SEASON DEFINITION: Jul-Aug (strict Rajeevan, sensitivity)   months=(7, 8)
+##############################################################################
+
+[4/5] Rajeevan active/break/transition labels
+Rajeevan labels | months (7, 8) | +/-1.0 SD sustained >=3d | clim smoothing +/-7d
+  days:   active=117  break=122  transition=1001  total=1240
+  spells: active=31  break=23
+  label leakage check: relabelling leave-one-year-out changes 16/1240 days (1.29%) -- reported, not assumed negligible
+
+   features | 1240 issue dates x 41 columns | 2000-07-01 -> 2019-08-31
+    trajectory lags (days): [0, 5, 10, 15, 20, 25, 30]
+    publication lags applied: {'nino34': 7, 'dmi': 30, 'rmm': 2, 'aux': 1}
+   rows dropped for incomplete predictors: 0/1240
+
+[5/5] Leave-one-year-out backtest across 20 years, per lead
+      baselines: day-of-year climatology + hard persistence
+      NO feature selection anywhere (Michaelsen 1987: screening is
+      the largest source of artificial skill).
+      Capacity IS selected, but only by inner GroupKFold over the
+      training years -- the held-out year is never touched.
+
+--- LEAD 1 WEEK (7 days) ---
+  samples 980 over 20 held-out years
+  target regime days: {'active': 56, 'break': 80, 'transition': 844}
+  target spells:      {'active': 13, 'break': 13}
+  Brier  model=0.2584  climatology=0.2570  persistence=0.5755  seasonal-only=0.2640  logistic=0.2926
+  BSS vs climatology  = -0.0055  [95% block-bootstrap CI -0.0426, +0.0465]
+  BSS vs persistence  = +0.5509
+  seasonal-only BSS   = -0.0271  (collapse test: full model must beat this)
+  logistic diag BSS   = -0.1384  (signal-vs-capacity diagnostic)
+  per-class BSS       = active=-0.0388  break=-0.0039  transition=+0.0084
+  beats climatology (skill>0 and CI excludes 0): NO
+
+--- LEAD 2 WEEK (14 days) ---
+  samples 840 over 20 held-out years
+  target regime days: {'active': 49, 'break': 69, 'transition': 722}
+  target spells:      {'active': 10, 'break': 12}
+  Brier  model=0.2623  climatology=0.2592  persistence=0.5929  seasonal-only=0.2658  logistic=0.2739
+  BSS vs climatology  = -0.0119  [95% block-bootstrap CI -0.0732, +0.0528]
+  BSS vs persistence  = +0.5575
+  seasonal-only BSS   = -0.0254  (collapse test: full model must beat this)
+  logistic diag BSS   = -0.0565  (signal-vs-capacity diagnostic)
+  per-class BSS       = active=-0.0580  break=-0.0193  transition=+0.0137
+  beats climatology (skill>0 and CI excludes 0): NO
+
+--- LEAD 3 WEEK (21 days) ---
+  samples 700 over 20 held-out years
+  target regime days: {'active': 46, 'break': 61, 'transition': 593}
+  target spells:      {'active': 10, 'break': 10}
+  Brier  model=0.3028  climatology=0.2807  persistence=0.6029  seasonal-only=0.2877  logistic=0.3450
+  BSS vs climatology  = -0.0785  [95% block-bootstrap CI -0.1912, +0.0050]
+  BSS vs persistence  = +0.4978
+  seasonal-only BSS   = -0.0247  (collapse test: full model must beat this)
+  logistic diag BSS   = -0.2290  (signal-vs-capacity diagnostic)
+  per-class BSS       = active=-0.0736  break=-0.1129  transition=-0.0594
+  beats climatology (skill>0 and CI excludes 0): NO
+
+--- LEAD 4 WEEK (28 days) ---
+  samples 560 over 20 held-out years
+  target regime days: {'active': 30, 'break': 51, 'transition': 479}
+  target spells:      {'active': 7, 'break': 9}
+  Brier  model=0.2909  climatology=0.2666  persistence=0.6250  seasonal-only=0.2732  logistic=0.2907
+  BSS vs climatology  = -0.0910  [95% block-bootstrap CI -0.2151, +0.0129]
+  BSS vs persistence  = +0.5346
+  seasonal-only BSS   = -0.0248  (collapse test: full model must beat this)
+  logistic diag BSS   = -0.0904  (signal-vs-capacity diagnostic)
+  per-class BSS       = active=-0.0380  break=-0.0853  transition=-0.1166
+  beats climatology (skill>0 and CI excludes 0): NO
+
+==============================================================================
+SUMMARY [Jul-Aug (strict Rajeevan, sensitivity)] -- BSS vs day-of-year climatology, per lead
+==============================================================================
+  lead      n   BSS vs clim                 95% CI  BSS vs pers   seas-only   logistic  beats clim
+   1wk    980       -0.0055   [-0.0426, +0.0465]      +0.5509     -0.0271    -0.1384          NO
+   2wk    840       -0.0119   [-0.0732, +0.0528]      +0.5575     -0.0254    -0.0565          NO
+   3wk    700       -0.0785   [-0.1912, +0.0050]      +0.4978     -0.0247    -0.2290          NO
+   4wk    560       -0.0910   [-0.2151, +0.0129]      +0.5346     -0.0248    -0.0904          NO
+
+==============================================================================
+PHASE 1 GATE (TASKS.md): 'Stage 1 beats climatological regime
+frequency at >= 2 week lead. If not, stop and reassess.'
+==============================================================================
+
+  [JJAS (primary)]
+    2-week BSS vs climatology : -0.0144
+    95% block-bootstrap CI    : [-0.0561, +0.0330]  (resampled over years)
+    samples / held-out years  : 2040 / 20
+    target regime days        : {'active': 148, 'break': 182, 'transition': 1710}
+    target spells             : {'active': 28, 'break': 27}
+    verdict                   : NOT CLEARED
+
+  [Jul-Aug (strict Rajeevan, sensitivity)]
+    2-week BSS vs climatology : -0.0119
+    95% block-bootstrap CI    : [-0.0732, +0.0528]  (resampled over years)
+    samples / held-out years  : 840 / 20
+    target regime days        : {'active': 49, 'break': 69, 'transition': 722}
+    target spells             : {'active': 10, 'break': 12}
+    verdict                   : NOT CLEARED
+
+------------------------------------------------------------------------------
+  OVERALL GATE: NOT CLEARED
+
+  Per TASKS.md: STOP. Do not build Stage 2 on top of this.
+  Downstream complexity cannot recover skill Stage 1 does not have.
+
+  wrote artifacts/phase1_stage1_validation.json
