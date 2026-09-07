@@ -232,6 +232,9 @@ C and L vary enormously by crop, landholding size, irrigation access, and whethe
 - Evidence text comes **only** through `advisory_evidence_lines(prior)` (the D-19 boundary); the raw fields are never read in the delivery layer (AST-verified).
 - **No live IMD call on the delivery path.** Trough evidence is read from the cached, batch-parsed bulletin pipeline (D-15/D-16); the demo errors rather than fetching if the cache is absent.
 
+**Q&A — "how do you actually reach the farmer's phone; doesn't WhatsApp block unsolicited messages?"**
+> *"Yes — WhatsApp only allows free-form messages within 24 hours of the farmer messaging us. For the demo that's exactly the Twilio Sandbox flow: the farmer sends a join code once, which opens the window, and advisories go out over it — no Meta business review needed. For production the real path is an approved Meta message template for send-anytime delivery; that's a WhatsApp Business API onboarding step we've scoped but not built. The sender enforces the opt-in as an explicit precondition rather than assuming a session is always open."* (D-21)
+
 ---
 
 ## Output tiering — do not blur this

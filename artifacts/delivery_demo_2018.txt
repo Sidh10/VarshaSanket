@@ -58,9 +58,11 @@ WHATSAPP -- Twilio Sandbox (dry run; no credentials, nothing sent)
 Twilio WhatsApp Sandbox setup:
   1. Twilio Console -> Messaging -> Try it out -> Send a WhatsApp message.
   2. From the recipient's phone, WhatsApp the sandbox number the join code
-     shown there (e.g. 'join <two-words>').
+     shown there (e.g. 'join <two-words>').  <-- this is the opt-in.
   3. Set TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_WHATSAPP_FROM in
      the environment. No business verification required.
+  4. Outbound free-form messages work for 24h after the farmer's last
+     inbound message. Past that: an approved Meta template (production).
 
 [WhatsApp] DRY RUN (not sent)
   to=whatsapp:+919000000000  from=(unset)  lang=en (verified)
@@ -75,6 +77,10 @@ Supporting information:
 Regional estimate for the monsoon core zone (central India). Not resolved to individual blocks or villages.
 IMPORTANT: the rupee figures above are illustrative examples, not verified local prices. Check current input and reseeding costs with your Krishi Vigyan Kendra before deciding.
 --- end ---
+
+  Opt-in / 24h-window precondition -- what a live send reports if the
+  farmer has NOT messaged the number (recipient_in_session default False):
+    not sent (no credentials in env; recipient_in_session=False (no confirmed opt-in / 24h window))
 
   refused to send 'hi' by default: advisory language 'hi' is not in ('en',) and has not been reviewed. Refusing to send. Pass allow_unverified_language=True only for internal testing, never a real farmer.
 

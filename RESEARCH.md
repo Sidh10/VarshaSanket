@@ -31,6 +31,7 @@ Status codes: ✅ verified against primary source · ⚠️ verified via seconda
 | NOAA CPC publishes **ENSO/Niño3.4** indices as free plain-text series, no registration (weekly OISST + monthly ERSST — *not daily*) | cpc.ncep.noaa.gov | ✅ verified live 2026-09-07 |
 | ~~NOAA CPC publishes IOD and MJO RMM indices~~ — **partly wrong.** DMI/IOD is a **NOAA PSL** product (monthly); RMM1/RMM2 is **Australian BoM** (daily). CPC's own MJO index is a different quantity (pentad velocity-potential). See DISCUSSION D-7 | psl.noaa.gov / bom.gov.au | ✅ corrected 2026-09-07 |
 | Twilio WhatsApp Sandbox is free, requires no business verification | twilio.com docs | ✅ |
+| WhatsApp free-form outbound messages are allowed only within **24 h of the farmer's last inbound message**; outside that needs an approved Meta template. Demo path (a): farmer sends the sandbox join code → 24 h window opens → advisories flow, no Meta review. Production path (b): approved template, WhatsApp Business API onboarding, **scoped not built**. See DISCUSSION D-21. | Twilio / Meta WhatsApp policy docs | ✅ |
 
 ### Competitive landscape
 

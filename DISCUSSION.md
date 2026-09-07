@@ -966,6 +966,23 @@ The delivery demo consumes `data/cache/bulletin_texts.json` (D-15/D-16 batch pip
 
 `WhatsAppSender(dry_run=True)` is the default. Going live needs `dry_run=False` **and** `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_WHATSAPP_FROM` in the environment; absent either, it returns a dry-run result explaining which. No credentials in the repo. Sandbox join flow (`SANDBOX_JOIN_HELP`) is printed by the demo. `twilio` 9.11.0 added to `requirements.txt`; imported only inside a real send.
 
+#### The 24-hour WhatsApp session window — now an explicit precondition (added 2026-09-08)
+
+**The original build silently assumed an open session.** `send()` called `client.messages.create()` directly — no opt-in check, no inbound-message tracking, no session-window state anywhere in the code or any onboarding flow. A live send to a number that never opted in would have been rejected by Twilio (error 63015/63016) and caught only after the fact via `SendResult.status`.
+
+WhatsApp permits free-form outbound messages **only within 24 hours of the recipient's last inbound message**. Outside that window needs an **approved Meta message template**.
+
+- **(a) Demo path — sufficient, and exactly what Twilio Sandbox already enforces.** The farmer sends the sandbox join code (or any message); a 24h window opens; advisories flow. No Meta review, no template.
+- **(b) Production path — out of scope for this build.** An approved Meta template for send-anytime delivery, requiring WhatsApp Business API onboarding and template approval.
+
+**Code change (minimal, matching the `allow_unverified_language` precedent):** `send()` now takes `recipient_in_session: bool = False`. The caller must affirm the recipient messaged within 24h (or just joined); this module does **not** track that state. Default `False` → dry-run result naming the blocker. A live send that still lands outside the window has Twilio's error (`_OUT_OF_SESSION_CODES`) surfaced verbatim in `status` with a plain-language hint. The demo prints what an un-opted-in recipient produces:
+
+```
+not sent (no credentials in env; recipient_in_session=False (no confirmed opt-in / 24h window))
+```
+
+This is **not** a full opt-in registry — tracking real inbound timestamps per farmer is production work (path b). It converts a silent assumption into a declared precondition.
+
 #### Superseded
 `src/models/decision_engine.py::advisory_text` is now a **terse inline preview for the Stage 4 worked example only** — its docstring says so and points to `src/delivery/advisory.py::render` as the real path. Not left as a competing implementation.
 

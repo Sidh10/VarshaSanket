@@ -140,6 +140,11 @@ def main() -> None:
     res_en = sender.send("+919000000000", advs["en"])
     out(res_en.describe())
     out("")
+    out("  Opt-in / 24h-window precondition -- what a live send reports if the")
+    out("  farmer has NOT messaged the number (recipient_in_session default False):")
+    res_nosession = WhatsAppSender(dry_run=False).send("+919000000000", advs["en"])
+    out(f"    {res_nosession.status}")
+    out("")
     try:
         sender.send("+919000000000", advs["hi"])
     except ValueError as e:
