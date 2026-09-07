@@ -71,8 +71,29 @@ These all surfaced during research as confident, plausible, specific claims. All
 
 ## § Known unverified — flagged, not used as load-bearing
 
-- Exact ICAR sowing thresholds per crop (soybean 50–75mm, groundnut 50mm, cotton 50–100mm) — these appeared in AI-generated research and are *plausible and consistent across sources*, but have not been traced to a specific ICAR bulletin. **Trace to a real bulletin before putting a number in the decision engine.**
+- ~~Exact ICAR sowing thresholds per crop (soybean 50–75mm, groundnut 50mm, cotton 50–100mm) — plausible and consistent across sources~~ — **STATUS DOWNGRADED 2026-09-07 after a tracing attempt. Now actively doubted, not merely untraced.** See § Contested below and DISCUSSION D-20.
 - IITM ARDC THREDDS (`ardc.tropmet.res.in`) accessibility — appears open, listed on AIKosh, but not tested end-to-end.
+
+---
+
+## § Contested — a figure with two incompatible values, neither traced to a primary source
+
+### ICAR soybean sowing rainfall threshold — **UNRESOLVED, do not use**
+
+Attempted trace, 2026-09-07 (for Stage 4). The attempt **weakened** the claim rather than confirming it:
+
+| Value | Attribution | Primary source? |
+|---|---|---|
+| **50–75 mm** | D-2 / earlier AI-generated research | **None.** Never traced. |
+| **100 mm** | "ICAR – National Soybean Research Institute, Indore", via `global-agriculture.com` (trade site) | **None.** The page cites *no bulletin, number, or date.* Quote: *"farmers are strongly advised to sow soybean only after the monsoon arrives in their area and after receiving at least 100 mm of rainfall."* |
+
+**The two figures are incompatible** (50–75 mm vs 100 mm — a difference that would change a sowing decision). That disagreement is itself evidence that the D-2 number should not be inherited as settled.
+
+**Primary source could not be reached.** A candidate ICAR-IISR extension bulletin URL was identified (`iisrindore.icar.gov.in/pdfdoc/ExtensionBulletin2023E_3.pdf`) but **the host does not resolve from this network** — DNS failure on `iisrindore.icar.gov.in` and `krishi.icar.gov.in`; only `icar.org.in` / `icar.gov.in` resolve (144.16.144.82). So the bulletin is neither confirmed nor refuted; it was simply not retrievable here. *That is a network result, not evidence about the document's contents* — a later attempt from a different network may succeed.
+
+**Consequence, enforced in code:** `src/models/decision_engine.py` sets `sowing_rain_threshold_mm=None` for every crop and marks all `CropEconomics` as `verified=False`. Any `DecisionResult` built from them carries `uses_unverified_parameters=True`, and both the worked example and the farmer-facing advisory render an explicit provisional-parameters disclosure. **No ICAR number is hardcoded anywhere.**
+
+**To close this:** retrieve an actual ICAR/IISR/SAU publication, record its title, number and year here, and only then set the threshold and flip `verified=True`.
 
 ---
 

@@ -1,0 +1,214 @@
+==============================================================================
+STAGE 1 -- CLIMATOLOGICAL REGIME PRIOR  (not a forecaster)
+==============================================================================
+
+[labels] Rajeevan labels | months (6, 9) | +/-1.0 SD sustained >=3d | clim smoothing +/-7d
+           days:   active=233  break=225  transition=1982  total=2440
+           spells: active=56  break=40
+
+[refactor check] production prior == D-14 backtest baseline: True
+
+------------------------------------------------------------------------------
+SAMPLE PRIORS
+------------------------------------------------------------------------------
+
+RegimePrior 2019-06-15 (doy 166)
+  P: active=0.100  break=0.060  transition=0.840
+  95% CI: active=[0.030,0.187]  break=[0.013,0.120]  transition=[0.757,0.917]
+  effective_n=20 years  (300 labelled days, autocorrelated)
+  method: climatological base rate; day-of-year +/-7d smoothing; block bootstrap over 20 years (n_boot=2000); NO forecast component
+  [bulletin evidence]  advisory_evidence: (none)
+  [analog evidence]    seasonal_analog_evidence: (none)
+
+RegimePrior 2019-07-15 (doy 196)
+  P: active=0.077  break=0.097  transition=0.827
+  95% CI: active=[0.027,0.133]  break=[0.030,0.180]  transition=[0.740,0.910]
+  effective_n=20 years  (300 labelled days, autocorrelated)
+  method: climatological base rate; day-of-year +/-7d smoothing; block bootstrap over 20 years (n_boot=2000); NO forecast component
+  [bulletin evidence]  advisory_evidence: (none)
+  [analog evidence]    seasonal_analog_evidence: (none)
+
+RegimePrior 2019-08-15 (doy 227)
+  P: active=0.067  break=0.090  transition=0.843
+  95% CI: active=[0.020,0.127]  break=[0.030,0.157]  transition=[0.773,0.910]
+  effective_n=20 years  (300 labelled days, autocorrelated)
+  method: climatological base rate; day-of-year +/-7d smoothing; block bootstrap over 20 years (n_boot=2000); NO forecast component
+  [bulletin evidence]  advisory_evidence: (none)
+  [analog evidence]    seasonal_analog_evidence: (none)
+
+RegimePrior 2019-09-15 (doy 258)
+  P: active=0.103  break=0.120  transition=0.777
+  95% CI: active=[0.040,0.177]  break=[0.037,0.223]  transition=[0.670,0.873]
+  effective_n=20 years  (300 labelled days, autocorrelated)
+  method: climatological base rate; day-of-year +/-7d smoothing; block bootstrap over 20 years (n_boot=2000); NO forecast component
+  [bulletin evidence]  advisory_evidence: (none)
+  [analog evidence]    seasonal_analog_evidence: (none)
+
+------------------------------------------------------------------------------
+SEPARATION CHECK -- evidence must not alter probabilities
+------------------------------------------------------------------------------
+  probabilities identical with and without evidence: True
+  advisory_evidence present only in the second: True
+
+------------------------------------------------------------------------------
+EVIDENCE COVERAGE (text field only -- does not affect probabilities)
+------------------------------------------------------------------------------
+  JJAS dates 2021-2025 with usable IMD trough evidence: 180/610 (30%)
+
+  example populated RegimePrior (evidence genuinely covers this date):
+  RegimePrior 2021-07-30 (doy 211)
+    P: active=0.120  break=0.120  transition=0.760
+    95% CI: active=[0.060,0.190]  break=[0.050,0.207]  transition=[0.673,0.840]
+    effective_n=20 years  (300 labelled days, autocorrelated)
+    method: climatological base rate; day-of-year +/-7d smoothing; block bootstrap over 20 years (n_boot=2000); NO forecast component
+    [bulletin evidence]  advisory_evidence: IMD Extended Range bulletin of 23 Jul 2021 places the monsoon trough north of its normal position in week 2. IMD's glossary defines Break Monsoon as the trough shifting north toward the Himalayan foothills, so this is break-favourable.
+    [analog evidence]    seasonal_analog_evidence: (none)
+
+------------------------------------------------------------------------------
+STAGE 2 -- SEASONAL ANALOG EVIDENCE (K nearest pre-season ENSO/IOD years)
+------------------------------------------------------------------------------
+  agreement across all 20 target years: {'divided': 19, 'leaning': 1}
+
+  SeasonalAnalogEvidence 2002 [mam, K=5, agreement=divided]
+      2004  d=0.297  actual outcome: dry
+      2013  d=0.367  actual outcome: wet
+      2005  d=0.566  actual outcome: normal
+      2014  d=0.648  actual outcome: dry
+      2003  d=0.708  actual outcome: wet
+      counts={'dry': 2, 'normal': 1, 'wet': 2}  effective_n=4.98
+      text: The 5 historical seasons whose pre-monsoon ENSO/IOD state most resembled 2002: 2004 was dry; 2013 was wet; 2005 was normal; 2014 was dry; 2003 was wet. These seasons diverged (2 dry, 1 normal, 2 wet), so they do not point to a single expectation. For example 2004 was dry while 2003 was wet, despite similar pre-monsoon ENSO/IOD state. Pre-monsoon ENSO/IOD state did not determine the outcome in these years.
+
+  SeasonalAnalogEvidence 2019 [mam, K=5, agreement=divided]
+      2010  d=0.681  actual outcome: normal
+      2017  d=1.232  actual outcome: normal
+      2016  d=1.803  actual outcome: wet
+      2015  d=1.854  actual outcome: dry
+      2009  d=2.232  actual outcome: dry
+      counts={'dry': 2, 'normal': 2, 'wet': 1}  effective_n=3.82
+      text: The 5 historical seasons whose pre-monsoon ENSO/IOD state most resembled 2019: 2010 was normal; 2017 was normal; 2016 was wet; 2015 was dry; 2009 was dry. These seasons diverged (2 dry, 2 normal, 1 wet), so they do not point to a single expectation. For example 2016 was wet while 2009 was dry, despite similar pre-monsoon ENSO/IOD state. Pre-monsoon ENSO/IOD state did not determine the outcome in these years.
+
+------------------------------------------------------------------------------
+SEPARATION CHECK 2 -- analog evidence must not alter probabilities
+------------------------------------------------------------------------------
+  probabilities identical: True
+  ci_lower identical: True
+  ci_upper identical: True
+  effective_n identical: True
+  analog fields populated only on p1: True
+  bulletin evidence untouched by analog attach: True
+
+  both mechanisms attached simultaneously:
+  RegimePrior 2019-07-15 (doy 196)
+    P: active=0.077  break=0.097  transition=0.827
+    95% CI: active=[0.027,0.133]  break=[0.030,0.180]  transition=[0.740,0.910]
+    effective_n=20 years  (300 labelled days, autocorrelated)
+    method: climatological base rate; day-of-year +/-7d smoothing; block bootstrap over 20 years (n_boot=2000); NO forecast component
+    [bulletin evidence]  advisory_evidence: IMD bulletin: trough north of normal in week 2.
+    [analog evidence]    seasonal_analog_evidence: The 5 historical seasons whose pre-monsoon ENSO/IOD state most resembled 2019: 2010 was normal; 2017 was normal; 2016 was wet; 2015 was dry; 2009 was dry. These seasons diverged (2 dry, 2 normal, 1 wet), so they do not point to a single expectation. For example 2016 was wet while 2009 was dry, despite similar pre-monsoon ENSO/IOD state. Pre-monsoon ENSO/IOD state did not determine the outcome in these years.
+      analogs: 2010(d=0.68,normal)  2017(d=1.23,normal)  2016(d=1.80,wet)  2015(d=1.85,dry)  2009(d=2.23,dry)
+      agreement=divided  effective_n=3.82  [advisory-visible: False]
+
+------------------------------------------------------------------------------
+D-19 -- farmer-facing advisory lines vs full technical view
+------------------------------------------------------------------------------
+
+  [2018 (leaning)]  agreement=leaning  advisory_visible=True
+    technical view still carries analog years: [2001, 2006, 2003, 2008, 2012]
+    suppressed_reason: None
+    FARMER-FACING lines (1):
+      - The 5 historical seasons whose pre-monsoon ENSO/IOD state most resembled 2018: 2001 was normal; 2006 was wet; 2003 was wet; 2008 was wet; 2012 was normal. 3 of 5 ended wet, but not all (0 dry, 2 normal, 3 wet). This is a historical tendency among close seasons, not a forecast.
+
+  [2019 (divided)]  agreement=divided  advisory_visible=False
+    technical view still carries analog years: [2010, 2017, 2016, 2015, 2009]
+    suppressed_reason: analog seasons divided (no single expectation); D-19
+    FARMER-FACING lines (1):
+      - IMD bulletin: trough north of normal in week 2.
+
+  asserted: divided-case data retained in API, absent from farmer text.
+
+==============================================================================
+STAGE 2 HANDOFF SCHEMA (RegimePrior)
+==============================================================================
+{
+  "target_date": "2019-07-15",
+  "day_of_year": 196,
+  "probabilities": {
+    "active": 0.0767,
+    "break": 0.0967,
+    "transition": 0.8267
+  },
+  "ci_lower": {
+    "active": 0.0267,
+    "break": 0.03,
+    "transition": 0.74
+  },
+  "ci_upper": {
+    "active": 0.1333,
+    "break": 0.1801,
+    "transition": 0.91
+  },
+  "n_years": 20,
+  "n_labelled_days": 300,
+  "effective_n": 20,
+  "source_years": [
+    2000,
+    2019
+  ],
+  "halfwindow_days": 7,
+  "method": "climatological base rate; day-of-year +/-7d smoothing; block bootstrap over 20 years (n_boot=2000); NO forecast component",
+  "advisory_evidence": null,
+  "evidence_source": null,
+  "seasonal_analog_evidence": "The 5 historical seasons whose pre-monsoon ENSO/IOD state most resembled 2019: 2010 was normal; 2017 was normal; 2016 was wet; 2015 was dry; 2009 was dry. These seasons diverged (2 dry, 2 normal, 1 wet), so they do not point to a single expectation. For example 2016 was wet while 2009 was dry, despite similar pre-monsoon ENSO/IOD state. Pre-monsoon ENSO/IOD state did not determine the outcome in these years.",
+  "seasonal_analog_years": [
+    2010,
+    2017,
+    2016,
+    2015,
+    2009
+  ],
+  "seasonal_analog_detail": [
+    {
+      "year": 2010,
+      "distance": 0.681,
+      "outcome": "normal"
+    },
+    {
+      "year": 2017,
+      "distance": 1.232,
+      "outcome": "normal"
+    },
+    {
+      "year": 2016,
+      "distance": 1.8028,
+      "outcome": "wet"
+    },
+    {
+      "year": 2015,
+      "distance": 1.8539,
+      "outcome": "dry"
+    },
+    {
+      "year": 2009,
+      "distance": 2.2316,
+      "outcome": "dry"
+    }
+  ],
+  "seasonal_analog_effective_n": 3.823,
+  "seasonal_analog_agreement": "divided",
+  "seasonal_analog_advisory_visible": false,
+  "farmer_facing_evidence_lines": [
+    "IMD bulletin: trough north of normal in week 2."
+  ]
+}
+
+Classes: ['active', 'break', 'transition']
+Numeric block   = probabilities / ci_lower / ci_upper   (climatology only)
+Evidence block A = advisory_evidence / evidence_source  (IMD bulletin parsing)
+Evidence block B = seasonal_analog_*                    (historical fact lookup)
+Neither evidence block is numeric input; both are asserted non-fusing above.
+`farmer_facing_evidence_lines` = D-19 filter: analog evidence only when
+  agreement in {leaning, unanimous}; 'divided' stays in the schema, not the
+  advisory. Here 2019 is 'divided', so only the bulletin line is farmer-facing.
+
+Stage 2 supplies EVIDENCE ONLY (probability reweighting retired, D-17).
+Stage 4 is NOT started. This defines the contract and stops.

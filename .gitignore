@@ -29,3 +29,10 @@ Thumbs.db
 !/artifacts/phase1_run_log.txt
 !/artifacts/phase1_stage1_validation.json
 !/artifacts/phase1_*_per_year_lead*.csv
+!/artifacts/d15_bulletin_samples.txt
+!/artifacts/phase1r_trough_check.txt
+!/artifacts/stage1_prior_schema.txt
+!/artifacts/stage2_backtest.txt
+!/artifacts/stage4_decision_example.txt
+!/artifacts/delivery_demo_2018.txt
+!/artifacts/delivery_risk_indicator_2018.svg

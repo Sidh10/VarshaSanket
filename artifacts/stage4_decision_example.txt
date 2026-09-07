@@ -1,0 +1,90 @@
+==============================================================================
+D-19 BOUNDARY CHECK (by inspection of decision_engine source)
+==============================================================================
+  imports advisory_evidence_lines : True
+  calls   advisory_evidence_lines : True
+  raw evidence fields read directly: NONE
+  -> Stage 4 obtains farmer-facing evidence ONLY via the D-19 boundary.
+
+==============================================================================
+D-C GUARD CHECK (no cost-loss threshold anywhere)
+==============================================================================
+  banned tokens in EXECUTABLE code: NONE
+  (same tokens appearing only in prose/docstrings: ['C/L'])
+  _expected_loss call sites       : 4 (both branches + envelope)
+  guard rejects a flat branch     : YES
+    -> [test] loss vector is constant across regimes (5.0). That makes this branch a flat number, which...
+  guard rejects a single P        : YES
+    -> [test] expected a probability over all 3 regimes, got shape (1,). A branch scored on a single pr...
+
+==============================================================================
+STAGE 1 INPUT
+==============================================================================
+RegimePrior 2018-07-15 (doy 196)
+  P: active=0.077  break=0.097  transition=0.827
+  95% CI: active=[0.027,0.133]  break=[0.030,0.180]  transition=[0.740,0.910]
+  effective_n=20 years  (300 labelled days, autocorrelated)
+  method: climatological base rate; day-of-year +/-7d smoothing; block bootstrap over 20 years (n_boot=2000); NO forecast component
+  [bulletin evidence]  advisory_evidence: IMD Extended Range bulletin places the monsoon trough north of its normal position in week 2, which IMD's glossary associates with a break in rainfall over central India.
+  [analog evidence]    seasonal_analog_evidence: The 5 historical seasons whose pre-monsoon ENSO/IOD state most resembled 2018: 2001 was normal; 2006 was wet; 2003 was wet; 2008 was wet; 2012 was normal. 3 of 5 ended wet, but not all (0 dry, 2 normal, 3 wet). This is a historical tendency among close seasons, not a forecast.
+    analogs: 2001(d=0.57,normal)  2006(d=0.66,wet)  2003(d=0.74,wet)  2008(d=0.76,wet)  2012(d=0.89,normal)
+    agreement=leaning  effective_n=4.99  [advisory-visible: True]
+
+==============================================================================
+CROP INPUTS -- soybean
+==============================================================================
+  L_reseed = 18,000 INR/ha   (sown, then a break spell)
+  L_delay  = 12,000 INR/ha   (waited, but rains came)
+  alpha    = 0.4  (share of L_reseed in a transition window)
+  beta     = 0.4  (share of L_delay in a transition window)
+  theta    = 1.500
+  verified = False
+
+==============================================================================
+WORKED EXAMPLE -- both branches shown term by term
+==============================================================================
+DECISION  2018-07-15  crop=soybean
+  Both branches are expectations over the SAME full distribution:
+    active      P=0.0767  L_sow=        0  L_wait=   12,000  contrib_sow=      0.0  contrib_wait=    920.0
+    break       P=0.0967  L_sow=   18,000  L_wait=        0  contrib_sow=  1,740.0  contrib_wait=      0.0
+    transition  P=0.8267  L_sow=    7,200  L_wait=    4,800  contrib_sow=  5,952.0  contrib_wait=  3,968.0
+                                                      E[loss|SOW]=  7,692.0  E[loss|WAIT]=  4,888.0
+  theta = L_reseed/L_delay = 1.500
+  RECOMMENDATION: WAIT  (margin E[wait]-E[sow] = -2,804.0 INR/ha)
+  Sensitivity envelope (marginal CI on P(break); NOT a joint interval):
+    point       E[sow]=  7,692.0  E[wait]=  4,888.0  -> WAIT
+    break_low   E[sow]=  6,931.3  E[wait]=  5,248.7  -> WAIT
+    break_high  E[sow]=  8,643.9  E[wait]=  4,436.6  -> WAIT
+    robust across envelope: True
+  Stage 1 effective_n: 20 years
+  Farmer-facing evidence lines:
+    - The 5 historical seasons whose pre-monsoon ENSO/IOD state most resembled 2018: 2001 was normal; 2006 was wet; 2003 was wet; 2008 was wet; 2012 was normal. 3 of 5 ended wet, but not all (0 dry, 2 normal, 3 wet). This is a historical tendency among close seasons, not a forecast.
+    - IMD Extended Range bulletin places the monsoon trough north of its normal position in week 2, which IMD's glossary associates with a break in rainfall over central India.
+  PROVISIONAL COST PARAMETERS -- not traced to a published source. This recommendation demonstrates the decision method; the rupee values are illustrative and must be replaced with locally sourced figures before any farmer acts on it. PROVISIONAL / UNVERIFIED. Monetary values illustrative, not sourced. Rainfall threshold intentionally omitted: D-2's 50-75 mm is untraced and is contradicted by a secondary attribution of 100 mm to ICAR-IISR Indore that cites no bulletin. See RESEARCH.md, D-20.
+
+==============================================================================
+FARMER-FACING ADVISORY
+==============================================================================
+Waiting is the lower-risk choice right now.
+Chance of a dry break spell around 2018-07-15: 10%. This is based on long-term averages for this date, not a forecast for this year.
+Expected loss if you sow now: ~7,692 INR/ha; if you wait: ~4,888 INR/ha.
+Supporting information:
+  - The 5 historical seasons whose pre-monsoon ENSO/IOD state most resembled 2018: 2001 was normal; 2006 was wet; 2003 was wet; 2008 was wet; 2012 was normal. 3 of 5 ended wet, but not all (0 dry, 2 normal, 3 wet). This is a historical tendency among close seasons, not a forecast.
+  - IMD Extended Range bulletin places the monsoon trough north of its normal position in week 2, which IMD's glossary associates with a break in rainfall over central India.
+NOTE: PROVISIONAL COST PARAMETERS -- not traced to a published source. This recommendation demonstrates the decision method; the rupee values are illustrative and must be replaced with locally sourced figures before any farmer acts on it. PROVISIONAL / UNVERIFIED. Monetary values illustrative, not sourced. Rainfall threshold intentionally omitted: D-2's 50-75 mm is untraced and is contradicted by a secondary attribution of 100 mm to ICAR-IISR Indore that cites no bulletin. See RESEARCH.md, D-20.
+
+==============================================================================
+theta SENSITIVITY (both branches re-expected at each theta; no threshold)
+==============================================================================
+   L_reseed   theta     E[sow]    E[wait]  decision
+      6,000    0.50      2,564      4,888       SOW
+      9,000    0.75      3,846      4,888       SOW
+     12,000    1.00      5,128      4,888      WAIT
+     15,000    1.25      6,410      4,888      WAIT
+     18,000    1.50      7,692      4,888      WAIT
+     24,000    2.00     10,256      4,888      WAIT
+
+==============================================================================
+ICAR CITATION STATUS: **STILL OPEN** -- see DISCUSSION D-20 / RESEARCH.md.
+No ICAR threshold is hardcoded. Monetary values are illustrative.
+==============================================================================

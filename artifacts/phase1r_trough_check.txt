@@ -1,0 +1,80 @@
+==============================================================================
+PHASE 1R CHECK -- IMD trough position vs observed Rajeevan regime
+NOT the D-14 backtest. Association check on 5 seasons. N stated throughout.
+==============================================================================
+
+--- trough extraction ---
+trough statements: 191 rows (96 bulletins x week 1/2)
+  north           7  (  3.7%)
+  foothills       1  (  0.5%)
+  south          14  (  7.3%)
+  near_normal    13  (  6.8%)
+  mixed          32  ( 16.8%)
+  not_stated    124  ( 64.9%)
+  usable directional signal: 35/191 (18.3%)
+  forecast-modality statements: 57/191 (29.8%)
+
+--- MCZ reconciliation ---
+MCZ box 18.0-28.0N 65.0-88.0E; threshold frac_in_mcz >= 0.25
+MCZ-relevant sub-divisions: 18
+  spanning IMD homogeneous regions: {'CENTRAL INDIA': 10, 'NORTH WEST INDIA': 4, 'EAST AND NORTH EAST INDIA': 3, 'SOUTH PENINSULA': 1}
+IMD 'Central India' sub-divisions: 10
+  in MCZ but NOT Central India (8): ['BIHAR', 'EAST RAJASTHAN', 'EAST UTTAR PRADESH', 'GANGETIC WEST BENGAL', 'JHARKHAND', 'TELANGANA', 'WEST RAJASTHAN', 'WEST UTTAR PRADESH']
+  in Central India but NOT MCZ (0): []
+  per-bulletin MCZ area-weighted coverage: median 0.78 (min 0.23, max 0.94, n=96)
+
+--- labels (Rajeevan, JJAS) ---
+  climatology from 2000-2025; labels joined over 2021-2025
+  Rajeevan labels | months (6, 9) | +/-1.0 SD sustained >=3d | clim smoothing +/-7d
+    days:   active=309  break=302  transition=2561  total=3172
+    spells: active=71  break=56
+
+--- position distribution in the joined sample ---
+  position
+  south          14
+  near_normal     8
+  north           7
+  foothills       1
+
+------------------------------------------------------------------------------
+[ALL leads (week 1 + week 2 pooled)]  N = 30 week-statements
+  observed break-dominant windows: 4/30 (base rate 0.13)
+  contingency        obs=break  obs=not
+    signal=break            4        4
+    signal=not-break        0       22
+  P(break | trough north/foothills) = 0.50  (n=8)
+  P(break | trough south/near)      = 0.00  (n=22)
+  Brier: signal=0.1333  climatology=0.1156  BSS=-0.1538
+  Fisher exact two-sided p = 0.003
+
+[week 1 (lead 0-6 d)]  N = 11 week-statements
+  observed break-dominant windows: 1/11 (base rate 0.09)
+  contingency        obs=break  obs=not
+    signal=break            1        1
+    signal=not-break        0        9
+  P(break | trough north/foothills) = 0.50  (n=2)
+  P(break | trough south/near)      = 0.00  (n=9)
+  Brier: signal=0.0909  climatology=0.0826  BSS=-0.1000
+  Fisher exact two-sided p = 0.182
+
+[week 2 (lead 7-13 d)]  N = 19 week-statements
+  observed break-dominant windows: 3/19 (base rate 0.16)
+  contingency        obs=break  obs=not
+    signal=break            3        3
+    signal=not-break        0       13
+  P(break | trough north/foothills) = 0.50  (n=6)
+  P(break | trough south/near)      = 0.00  (n=13)
+  Brier: signal=0.1579  climatology=0.1330  BSS=-0.1875
+  Fisher exact two-sided p = 0.021
+
+------------------------------------------------------------------------------
+CALIBRATION CHECK (leave-one-out; raw signal is hard 0/1)
+  [all] N=30  LOO-calibrated Brier=0.0736  climatology=0.1216  BSS=+0.3952
+  [week 2] N=19  LOO-calibrated Brier=0.0905  climatology=0.1363  BSS=+0.3359
+
+------------------------------------------------------------------------------
+PIPELINE COVERAGE OF EVENTS
+  break-dominant windows in 2021-2025 covered by a bulletin week-section: 12; of those with a usable trough position: 4 (33%)
+
+==============================================================================
+Sample size is the binding constraint, not the statistic. Read the Ns.

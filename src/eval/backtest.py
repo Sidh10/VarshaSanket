@@ -79,18 +79,19 @@ def climatology_proba(
     obvious choices -- it knows the seasonal progression of regime frequency
     through Jul-Aug, so beating it requires more than knowing the calendar.
     Fitted only on training years.
+
+    DELEGATES to `src.models.climatological_prior.day_of_year_frequencies`.
+    That function was extracted from the body of this one when climatology was
+    promoted to be the production Stage 1 (D-14 aftermath: nothing beat it, so
+    it became the model). The computation is unchanged and D-14's reported
+    numbers remain reproducible -- there is now ONE implementation so the
+    backtest baseline and the production prior cannot silently diverge.
     """
-    y = y_train.dropna()
-    tr_doy = y.index.dayofyear.to_numpy()
-    out = np.zeros((len(issue_dates), len(CLASSES)))
-    for i, d in enumerate(issue_dates.dayofyear.to_numpy()):
-        dist = np.minimum(np.abs(tr_doy - d), 365 - np.abs(tr_doy - d))
-        sel = y[dist <= halfwindow]
-        if len(sel) == 0:
-            sel = y
-        for j, c in enumerate(CLASSES):
-            out[i, j] = (sel == c).mean()
-    out = out / out.sum(axis=1, keepdims=True)
+    from src.models.climatological_prior import day_of_year_frequencies
+
+    out = day_of_year_frequencies(
+        y_train, issue_dates.dayofyear.to_numpy(), halfwindow
+    )
     return pd.DataFrame(out, index=issue_dates, columns=CLASSES)
 
 

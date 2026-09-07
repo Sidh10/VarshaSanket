@@ -1,0 +1,108 @@
+==============================================================================
+DELIVERY DEMO -- 2018-07-15, soybean  (same case as Stage 4 / D-20)
+==============================================================================
+  recommendation : WAIT
+  E[loss|SOW]  = 7,692 INR/ha
+  E[loss|WAIT] = 4,888 INR/ha
+  margin (E[wait]-E[sow]) = -2,804  robust=True
+  uses_unverified_parameters = True
+  evidence_lines (via D-19 boundary): 2
+
+==============================================================================
+LANGUAGE(S) SPECIFIED IN THE DOCS
+==============================================================================
+  ARCHITECTURE.md : 'short regional-language message'   (no language named)
+  README.md       : 'in their own language'            (no language named)
+  AGENTS.md       : 'reviewable by someone who reads that language before demo'
+  => NO specific language is specified anywhere. English is the verified
+     default; Hindi is a machine-generated STUB pending native review (D-21).
+
+==============================================================================
+ADVISORY [en]
+==============================================================================
+Advisory [en, verified]  1067 chars
+  recommendation=wait  robust=True  disclosure_shown=True
+--- message ---
+VarshaSanket advisory - 2018-07-15 - soybean
+Recommendation: WAIT. Sowing now carries the higher risk.
+Chance of a dry break spell around this date: 10%. Based on 20-year averages for this date, not a forecast for this year.
+Expected loss if you sow now: about Rs 7,692/ha. If you wait: about Rs 4,888/ha.
+Supporting information:
+- The 5 historical seasons whose pre-monsoon ENSO/IOD state most resembled 2018: 2001 was normal; 2006 was wet; 2003 was wet; 2008 was wet; 2012 was normal. 3 of 5 ended wet, but not all (0 dry, 2 normal, 3 wet). This is a historical tendency among close seasons, not a forecast.
+- IMD Extended Range bulletin places the monsoon trough north of its normal position in week 2, which IMD's glossary associates with a break in rainfall over central India.
+Regional estimate for the monsoon core zone (central India). Not resolved to individual blocks or villages.
+IMPORTANT: the rupee figures above are illustrative examples, not verified local prices. Check current input and reseeding costs with your Krishi Vigyan Kendra before deciding.
+--- end ---
+
+==============================================================================
+ADVISORY [hi]
+==============================================================================
+Advisory [hi, UNVERIFIED - needs native review]  1132 chars
+  recommendation=wait  robust=True  disclosure_shown=True
+--- message ---
+*** मशीन अनुवाद - समीक्षा नहीं हुई / MACHINE TRANSLATION, NOT REVIEWED ***
+[अनवेरिफाइड] वर्षासंकेत सलाह - 2018-07-15 - soybean
+सिफारिश: प्रतीक्षा करें। अभी बुवाई करने में अधिक जोखिम है।
+इस तिथि के आसपास सूखे 'ब्रेक' की संभावना: 10%। यह इस तिथि के 20 साल के औसत पर आधारित है, इस साल का पूर्वानुमान नहीं।
+अभी बुवाई करने पर अनुमानित हानि: लगभग रु 7,692/हेक्टेयर। प्रतीक्षा करने पर: लगभग रु 4,888/हेक्टेयर।
+सहायक जानकारी:
+- The 5 historical seasons whose pre-monsoon ENSO/IOD state most resembled 2018: 2001 was normal; 2006 was wet; 2003 was wet; 2008 was wet; 2012 was normal. 3 of 5 ended wet, but not all (0 dry, 2 normal, 3 wet). This is a historical tendency among close seasons, not a forecast.
+- IMD Extended Range bulletin places the monsoon trough north of its normal position in week 2, which IMD's glossary associates with a break in rainfall over central India.
+[UNVERIFIED HINDI] मानसून कोर ज़ोन (मध्य भारत) के लिए क्षेत्रीय अनुमान। अलग-अलग ब्लॉक या गाँव के लिए नहीं।
+महत्वपूर्ण: ऊपर दिए गए रुपये के आंकड़े केवल उदाहरण हैं, सत्यापित स्थानीय कीमतें नहीं। निर्णय लेने से पहले अपने कृषि विज्ञान केंद्र से लागत की पुष्टि करें।
+--- end ---
+
+==============================================================================
+WHATSAPP -- Twilio Sandbox (dry run; no credentials, nothing sent)
+==============================================================================
+Twilio WhatsApp Sandbox setup:
+  1. Twilio Console -> Messaging -> Try it out -> Send a WhatsApp message.
+  2. From the recipient's phone, WhatsApp the sandbox number the join code
+     shown there (e.g. 'join <two-words>').
+  3. Set TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_WHATSAPP_FROM in
+     the environment. No business verification required.
+
+[WhatsApp] DRY RUN (not sent)
+  to=whatsapp:+919000000000  from=(unset)  lang=en (verified)
+--- body ---
+VarshaSanket advisory - 2018-07-15 - soybean
+Recommendation: WAIT. Sowing now carries the higher risk.
+Chance of a dry break spell around this date: 10%. Based on 20-year averages for this date, not a forecast for this year.
+Expected loss if you sow now: about Rs 7,692/ha. If you wait: about Rs 4,888/ha.
+Supporting information:
+- The 5 historical seasons whose pre-monsoon ENSO/IOD state most resembled 2018: 2001 was normal; 2006 was wet; 2003 was wet; 2008 was wet; 2012 was normal. 3 of 5 ended wet, but not all (0 dry, 2 normal, 3 wet). This is a historical tendency among close seasons, not a forecast.
+- IMD Extended Range bulletin places the monsoon trough north of its normal position in week 2, which IMD's glossary associates with a break in rainfall over central India.
+Regional estimate for the monsoon core zone (central India). Not resolved to individual blocks or villages.
+IMPORTANT: the rupee figures above are illustrative examples, not verified local prices. Check current input and reseeding costs with your Krishi Vigyan Kendra before deciding.
+--- end ---
+
+  refused to send 'hi' by default: advisory language 'hi' is not in ('en',) and has not been reviewed. Refusing to send. Pass allow_unverified_language=True only for internal testing, never a real farmer.
+
+  (hi, internal testing only, allow_unverified_language=True):
+[WhatsApp] DRY RUN (not sent)
+  to=whatsapp:+919000000000  from=(unset)  lang=hi (UNVERIFIED)
+--- body ---
+*** मशीन अनुवाद - समीक्षा नहीं हुई / MACHINE TRANSLATION, NOT REVIEWED ***
+[अनवेरिफाइड] वर्षासंकेत सलाह - 2018-07-15 - soybean
+सिफारिश: प्रतीक्षा करें। अभी बुवाई करने में अधिक जोखिम है।
+इस तिथि के आसपास सूखे 'ब्रेक' की संभावना: 10%। यह इस तिथि के 20 साल के औसत पर आधारित है, इस साल का पूर्वानुमान नहीं।
+अभी बुवाई करने पर अनुमानित हानि: लगभग रु 7,692/हेक्टेयर। प्रतीक्षा करने पर: लगभग रु 4,888/हेक्टेयर।
+सहायक जानकारी:
+- The 5 historical seasons whose pre-monsoon ENSO/IOD state most resembled 2018: 2001 was normal; 2006 was wet; 2003 was wet; 2008 was wet; 2012 was normal. 3 of 5 ended wet, but not all (0 dry, 2 normal, 3 wet). This is a historical tendency among close seasons, not a forecast.
+- IMD Extended Range bulletin places the monsoon trough north of its normal position in week 2, which IMD's glossary associates with a break in rainfall over central India.
+[UNVERIFIED HINDI] मानसून कोर ज़ोन (मध्य भारत) के लिए क्षेत्रीय अनुमान। अलग-अलग ब्लॉक या गाँव के लिए नहीं।
+महत्वपूर्ण: ऊपर दिए गए रुपये के आंकड़े केवल उदाहरण हैं, सत्यापित स्थानीय कीमतें नहीं। निर्णय लेने से पहले अपने कृषि विज्ञान केंद्र से लागत की पुष्टि करें।
+--- end ---
+
+==============================================================================
+REGIONAL RISK INDICATOR -- one region, one colour, NOT a choropleth
+==============================================================================
+MONSOON CORE ZONE - break-spell risk indicator
+  date 2018-07-15   crop soybean
+  P(active) 8%   P(break) 10%   P(transition) 83%
+  risk: MODERATE (#f9a825)   recommendation: WAIT
+  Regional estimate for the monsoon core zone (central India). Not resolved to individual blocks or villages.
+  NOTE: cost figures illustrative, not verified local prices (D-20).
+
+  uniform-fill SVG written to artifacts/delivery_risk_indicator_2018.svg
+  (single rectangle; 'not resolved to individual blocks' baked into the image)

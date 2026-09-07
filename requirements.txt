@@ -24,3 +24,6 @@ imdlib==0.1.21
 
 # HTTP (index endpoints)
 requests==2.32.5
+
+# WhatsApp delivery (Twilio Sandbox -- free, no business verification, RESEARCH.md)
+twilio==9.11.0
