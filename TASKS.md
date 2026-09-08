@@ -222,8 +222,18 @@ Resolves the open question above: `divided` analog evidence stays in the API, is
 - [x] Old "backtest number" slot → **Stage 1 base rate + block-bootstrap CI**, exact advisory wording ("based on 20-year averages… not a forecast for this year"), explicit *"no accuracy/skill figure is shown"* note (D-14–D-17). **No manufactured skill number.**
 - [x] Full advisory rendered exactly as Phase 4b built it — both evidence lines, ICAR disclosure in the message body, single-region risk SVG with "not resolved to individual blocks" baked into the image.
 - [x] **Rehearse-until-flawless (headless):** `run_demo --repeat 5` → 5 identical payload hashes, ~26 s each, zero manual intervention, no live IMD call (asserts the bulletin cache).
+- [ ] **Before starting the real demo server, kill any process already bound to the demo port (8765).** A stale `src.demo.server` instance from an earlier session silently swallowed requests and made freshly-added routes 404 (D-27) — cheap to check first (`Get-CimInstance Win32_Process -Filter "Name='python.exe'"` on Windows, or `lsof -i :8765`), expensive to discover live.
 - [x] **Live-send rehearsal (real WhatsApp message):** `python -m src.delivery.rehearse_live_send --confirm-live-send` — standalone, refuses to run without the flag, never in the regression suite. Sends the real 2018 advisory to `VARSHASANKET_DEMO_TO`; checks `SendResult.status`; on a 63015/63016 session-window failure prints the plain-language opt-in fix. **Run once, a few minutes before presenting** (D-21). Needs `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_WHATSAPP_FROM` / `VARSHASANKET_DEMO_TO`.
 - [x] **Scope held:** one case, one slider variable. No second district, no crop dropdown, no date picker.
+
+### Per-farmer profile screen built 2026-09-08 — `/profiles` on the SAME server, see DISCUSSION **D-27**. Run: `python -m src.demo.server` → `http://localhost:8765/profiles` / headless: `python -m src.demo.run_profiles_demo --repeat 5`
+
+- [x] Farmer selector — **four illustrative demo profiles**, clearly labelled not real users: A (soybean/rainfed/black soil/risk-tolerant, D-26's `PROFILE_A`) → SOW, fragile; B (cotton/assured irrigation/sandy soil/risk-averse, D-26's `PROFILE_B`) → WAIT, robust; C (soybean/partial irrigation/black soil/risk-tolerant — same as A but for irrigation) → WAIT, the closest-to-tied margin in the whole 81-combo pre-sowing grid, fragile; D (soybean, already sown, germination) → no SOW/WAIT recommendation.
+- [x] Extends `src/demo/server.py` in place — **no parallel app.** New `/profiles` route + `/api/profile_decide` endpoint; the original `/` screen is unchanged; both share one cached `DemoCase`, no live IMD call.
+- [x] Selecting a profile calls the real `decide_for_profile()` against the SAME 2018-07-15 prior and renders the full advisory — recommendation, both `E[loss]`, `advisory_evidence_lines` output, the ICAR/illustrative-cost disclosure — nothing simplified from Phase 4b.
+- [x] **Composition finding applied directly, not left open:** risk preference lives ONLY inside the selected farmer profile; the `/profiles` screen has NO theta/l_reseed slider of any kind. The slider stays on `/`, a different screen — no double-counting risk.
+- [x] Base vs effective loss inputs shown side by side, explicitly labelled ("base (crop default)" vs "effective (post multiplier)"), never ambiguous which is which.
+- [x] Confirmed end-to-end for all four profiles with no manual intervention; `run_profiles_demo --repeat 5` gives an identical payload hash across all 5 runs (same determinism standard as Phase 5's `run_demo.py`).
 
 ---
 

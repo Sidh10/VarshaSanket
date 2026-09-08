@@ -1574,6 +1574,64 @@ Demo profile C (already sown, at germination) → **no SOW/WAIT recommendation**
 
 ---
 
+### D-27: Per-farmer profile UI (`/profiles`) — extends `src/demo/server.py`, does not fork it — **BUILT**
+
+Run: `python -m src.demo.server` → `http://localhost:8765/profiles` (link back to `/` and vice versa) · headless check: `python -m src.demo.run_profiles_demo --repeat 5` · log `artifacts/demo_profiles_endtoend.txt`. New files `src/demo/profiles.py`, `src/demo/run_profiles_demo.py`; `src/demo/server.py` extended in place (new route + endpoint, existing `/` screen otherwise unchanged).
+
+#### What it is
+
+A farmer selector for D-26's `decide_for_profile()`, in the SAME server as the Phase 5 single-case screen, sharing the SAME cached `DemoCase` (2018-07-15, no live IMD call, built once at startup). Four **illustrative demo profile** cards (`profile_is_illustrative` is always `True`, labelled as such in the UI, no farmer database); selecting one calls `/api/profile_decide?profile=<A|B|C|D>` → `build_profile_payload()` → the real `decide_for_profile()` → the real `decide()`. No lookup table.
+
+#### The composition finding is applied, not left open
+
+Last turn's finding: a floating theta/l_reseed slider *and* a per-farmer profile on the same screen double-counts risk (the profile already scales `L_reseed` via its own risk multiplier; a slider on top would let a demo operator scale it a second time). Fix, applied directly:
+
+- The `/profiles` screen carries **no slider of any kind.** Risk preference is read only from the selected profile card (`RiskPreference` field of `FarmerProfile`).
+- The theta/l_reseed slider **stays exactly where it was** — the original `/` screen, a different mode, unchanged (still one fixed case, only `l_reseed` varies, per Phase 5's scope discipline).
+- No code path in `src/demo/profiles.py` or the `/api/profile_decide` handler accepts an `l_reseed` / theta override — there is nothing to wire up even by mistake.
+
+#### The four profiles
+
+Verified directly against the live 2018-07-15 prior (`P(active)=0.0767, P(break)=0.0967, P(transition)=0.8267`, identical across all four — only the loss side moves) by dumping `decide_for_profile()` over the **full 81-combination pre-sowing grid** (3 crops × 3 irrigation × 3 soil × 3 risk):
+
+| | A | B | C | D |
+|---|---|---|---|---|
+| inputs | soybean · rainfed · clay · risk-tolerant | cotton · assured · sandy · risk-averse | soybean · **partial** · clay · risk-tolerant | soybean · partial · loam · neutral · **SOWN**, germination |
+| multipliers (L_reseed / L_delay / alpha) | ×0.69 / ×1.00 / ×0.70 | ×1.49 / ×0.55 / ×1.35 | ×0.69 / ×0.80 / ×0.70 | n/a — applicability routes away before `adjusted_economics` runs |
+| effective θ | 1.500 → 1.040 | 1.500 → 4.077 | 1.500 → 1.299 | n/a |
+| E[loss\|SOW] / E[loss\|WAIT] | 4,093 / 4,888 | 24,357 / 4,481 | 4,093 / 3,910 | n/a |
+| recommendation | **SOW** (margin +795) | **WAIT** (margin −19,876) | **WAIT** (margin −183) | **none** |
+| robust | **False** | True | **False** | n/a |
+
+A and B are field-for-field the two profiles from D-26's worked example (`run_stage4_profile.py`'s `PROFILE_A` / `PROFILE_B`, reproduced here rather than imported, so this screen's labels stay independent of that script's). D is field-for-field that script's already-sown `PROFILE_C`.
+
+**On "a third profile showing a different SOW/WAIT outcome than either A or B":** checked directly against the grid rather than assumed — **impossible to satisfy literally.** SOW/WAIT is a two-valued space, and A/B are constructed (and asserted, in D-26) to already occupy both values, so a third profile cannot hold a third *recommendation label* — pigeonhole. The full grid dump confirms this is not just an A/B artifact: across all 81 pre-sowing combinations for this date, only **3 ever recommend SOW at all** (rainfed + clay + risk-tolerant, one per crop — A is one of them), and every one of those 3 is fragile; the other 78 are WAIT. So a literal "third label" was never available for this prior. **Profile C instead demonstrates a third outcome *shape*:** same crop/soil/risk as A but partial instead of rainfed irrigation, it has the smallest `|margin|` of any non-SOW combination in the whole 81-row grid (≈−183 INR/ha) — the closest thing to a genuine tie this prior produces, and itself fragile. That is flagged here as the honest reading of the request rather than silently presented as a third recommendation value it cannot be.
+
+#### Effective vs base values — never ambiguous which is which
+
+Per-profile payload carries `economics.base` (the crop default, e.g. soybean L_reseed 18,000 / L_delay 12,000 / alpha 0.40) and `economics.effective` (the SAME fields **after** this farmer's multipliers, e.g. Profile A's 12,474 / 12,000 / 0.28) side by side, plus the multiplier factors that produced the difference. The UI renders both rows of one table, labelled "base (crop default)" vs "effective (post multiplier)" — never a single merged number.
+
+#### Nothing simplified from Phase 4b
+
+Each profile's card renders, when a decision applies: recommendation, both `E[loss]` figures with the bar chart, the base/effective economics table, the Stage 1 base rate + 95% CI (identical across all four — shown once, explicitly captioned as such), the **full** `advisory.render()` text (both evidence lines, the ICAR/illustrative-cost disclosure in the message body, not only a technical view), and the single-region risk SVG. Verified for Profile A directly against `get_page_text()` on the live page — full 1,147-char advisory present, 2 evidence lines, `ICAR disclosure shown: true`.
+
+#### The no-decision path (Profile D) renders as a state, not an error
+
+`decision === null` in the payload routes the UI to a dashed `.notmodelledcard` panel showing `applicability` and the exact `not_modelled_reason` string from `farmer_profile.py` — confirmed live: *"This farmer has already sown; the live decision is whether to protect the standing crop against a forecast break (crop at germination) ... Emitting a SOW/WAIT recommendation here would misapply the model."* No exception, no blank card, no `500` — verified via `curl` (`/api/profile_decide?profile=D` → `200`) and in-browser.
+
+#### Verification
+
+- `python -m src.demo.run_profiles_demo --repeat 5`: all 5 runs produced an **identical payload hash** across all four profiles — same determinism standard as Phase 5's `run_demo.py --repeat 5`. Log: `artifacts/demo_profiles_endtoend.txt`.
+- Live server: all four `/api/profile_decide` routes and `/profiles` return `200`; `/` (the original screen) still returns `200` unchanged.
+- Driven end-to-end in-browser (not just curl): clicked A → B → C → D, `get_page_text()` confirmed correct recommendation/robustness/advisory/no-decision-panel content for each, no manual data entry.
+- One real bug caught and fixed before any of the above: an earlier stale `python -m src.demo.server` process (from an unrelated earlier session, still bound to port 8765) intercepted requests and made the new routes look like `404`s. Not a code defect — killed the stale process, confirmed a single fresh instance serves the new routes. Left here so a future "the routes 404" report is checked against a stale process before the code is doubted.
+
+#### Honest limits (inherited from D-26, unchanged by the UI)
+
+Multiplier tables are illustrative, not calibrated to farm-economics data. No profile personalises Stage 1's probabilities. Post-sowing protect-vs-hold decision remains unmodelled (D shows the honest "no recommendation" state for it, not a guess).
+
+---
+
 ## Handoff notes
 
 *(Append session notes here — what changed, what was decided, what the next agent should know.)*
@@ -1620,3 +1678,10 @@ Two doc tasks + one build.
 - **D-26 — `src/models/farmer_profile.py`.** Per-farmer inputs (crop, sowing status, growth stage, irrigation, soil, risk preference) that move the **LOSS side only** of Stage 4's expected-loss comparison. No existing file changed. Profile → adjusted `CropEconomics` → the existing `decide()`, so `_assert_is_expectation()` covers every new path (verified over a 27-combo grid + explicit rejection tests). Stage 1's probabilities are structurally unreachable from the module (AST-checked). Advisory evidence still flows only through `advisory_evidence_lines(prior)`. Worked example: two illustrative demo profiles, same date + same regime probabilities, opposite recommendations (A rainfed/clay/tolerant → SOW but `robust=False`; B irrigated/sandy/averse → WAIT `robust=True`), both expected losses shown term-by-term. `artifacts/stage4_profile_example.txt`.
   - Multiplier tables are **illustrative**, not calibrated to farm-economics data — same standard as the D-20 crop-loss thresholds. Post-sowing action set (protect vs hold) is recognised and declined, not modelled.
   - Next agent: if you calibrate the multiplier tables, Gate C (D-4) is the natural source. Do NOT let any profile field reach into Stage 1's probabilities — if year-specific skill ever exists it belongs in Stage 1.
+
+**Session — per-farmer profile UI, `/profiles` (2026-09-08)**
+Built the frontend for D-26's farmer-profile layer: a farmer selector on the SAME demo server, not a parallel app. New `src/demo/profiles.py` (four illustrative demo profiles + `build_profile_payload()`), `src/demo/run_profiles_demo.py` (headless 5-repeat determinism check, mirrors `run_demo.py`), `src/demo/server.py` extended with a `/profiles` route + `/api/profile_decide` endpoint (original `/` screen untouched). Full detail in **D-27**.
+
+Two things worth flagging to the next agent:
+1. **The requested third profile ("a different SOW/WAIT outcome than either A or B") is not literally achievable** — checked against the full 81-combo grid rather than assumed, and confirmed: SOW/WAIT is binary, A and B are already opposite by construction, so pigeonhole rules out a third label. Built the closest honest reading instead (Profile C: A's fields but partial irrigation → the single closest-to-tied margin in the whole grid, a genuinely different *outcome shape*, not a third label). Flagged in D-27 rather than silently claimed.
+2. **A stale server process from an earlier session was still bound to port 8765** and served old code, making the new routes 404 until it was found (`Get-CimInstance Win32_Process -Filter "Name='python.exe'"` in PowerShell) and killed. If a future session sees `/profiles` 404 after editing `server.py`, check for a stale process on 8765 before assuming the code is wrong.
