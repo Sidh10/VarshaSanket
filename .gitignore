@@ -41,3 +41,8 @@ Thumbs.db
 !/artifacts/demo_2018_endtoend_run.txt
 !/artifacts/demo_2018_risk.svg
 !/artifacts/demo_2018_snapshot.html
+# D-27/D-28 profile-sweep log. Added 2026-09-08: this exception was MISSING when
+# D-27/D-28 were written, so the sweep log those entries cite as evidence was
+# silently ignored by git and never committed. The next real sweep run will now
+# be committable. See DISCUSSION D-29.
+!/artifacts/demo_profiles_endtoend.txt

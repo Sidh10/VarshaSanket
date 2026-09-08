@@ -1739,3 +1739,62 @@ Built the frontend for D-26's farmer-profile layer: a farmer selector on the SAM
 Two things worth flagging to the next agent:
 1. **The requested third profile ("a different SOW/WAIT outcome than either A or B") is not literally achievable** — checked against the full 81-combo grid rather than assumed, and confirmed: SOW/WAIT is binary, A and B are already opposite by construction, so pigeonhole rules out a third label. Built the closest honest reading instead (Profile C: A's fields but partial irrigation → the single closest-to-tied margin in the whole grid, a genuinely different *outcome shape*, not a third label). Flagged in D-27 rather than silently claimed.
 2. **A stale server process from an earlier session was still bound to port 8765** and served old code, making the new routes 404 until it was found (`Get-CimInstance Win32_Process -Filter "Name='python.exe'"` in PowerShell) and killed. If a future session sees `/profiles` 404 after editing `server.py`, check for a stale process on 8765 before assuming the code is wrong.
+
+---
+
+### D-29: Repo reconciliation audit — the later work is all committed; **one cited evidence log never was** — **RECON ONLY, one item fixed**
+
+**Date:** 2026-09-08. Verification only — no code changed, no result recomputed. Everything below is from `git log --oneline --all`, `git status`, a full tracked-vs-on-disk file diff, and grep over the tree.
+
+**The audit was commissioned on a premise that turned out to be false.** The brief said the committed repo was "out of sync with what later work appears to have produced" — TASKS.md, DISCUSSION.md "through D-19", and a stale README — and asked whether Phase 5 needed rebuilding. Three of those four are wrong, and it matters that the answer was checked rather than assumed in either direction.
+
+**What is actually true:**
+
+- `HEAD`, `main`, `origin/main` and `origin/claude/repo-reconciliation-audit-m9vt6q` **all point at the same commit**, `4e3592e`.
+- **Working tree clean.** `git status` reports nothing to commit; `git status --porcelain --ignored` is empty.
+- The tracked file list and the on-disk file list are **identical** — zero untracked files, zero uncommitted modifications, nothing staged.
+- DISCUSSION.md ran to **D-28**, not D-19, before this entry.
+- Every artifact of the "later work" named in the brief was already committed and pushed: `src/demo/server.py`, `src/demo/run_demo.py`, `src/demo/profiles.py`, `src/demo/run_profiles_demo.py`, `src/models/farmer_profile.py`, `src/models/run_stage4_profile.py`, and the D-28 free-selection frontend (`profile_option_values()`, `demo_preset_summaries()`, `/api/profile_options`, `check_no_schema_literals_in_page()` — all present in `server.py`/`profiles.py`).
+
+So the answer to the question the audit existed to settle — *"push what already exists"* or *"rebuild Phase 5 for real"* — is **neither. It was already pushed.**
+
+#### The one real finding: a cited log that git silently ignored
+
+`artifacts/demo_profiles_endtoend.txt` is cited **four times** as the evidence for the profile sweep — `DISCUSSION.md:1579` (D-27), `DISCUSSION.md:1624` (D-27), `DISCUSSION.md:1637` (D-28), and TASKS.md's "648 combinations swept: 81 scored (3 SOW / 78 WAIT), 243 no-decision, 324 refused, 0 failures".
+
+It is **not on disk and not in any commit.** `git log --all -- artifacts/demo_profiles_endtoend.txt` returns nothing.
+
+**Root cause, and it is mechanical rather than a lapse of memory.** `.gitignore` ignores `/artifacts/*` wholesale and re-admits individual files by explicit exception. Every earlier artifact has its exception line. `demo_profiles_endtoend.txt` — written by `run_profiles_demo.py:51` — never got one. So on the machine that ran the sweep the log was produced, read, and quoted into two DISCUSSION entries, and `git add` silently declined to stage it. Nothing failed loudly. **Fixed:** the exception is now in `.gitignore`, so the next real run is committable.
+
+**This is exactly the failure mode CLAUDE.md Rule 2 exists to stop, arriving from an unexpected direction.** The rule guards against a number reported without its protocol. Here the protocol was genuinely run and genuinely honest — an ephemeral-port server specifically to dodge the D-27 stale-8765 hazard, every combination either scored or cleanly refused — and the *number* still ended up standing on nothing a reader of this repo can inspect. A figure whose evidence is ignored by `.gitignore` is, from the repo's point of view, indistinguishable from a figure that was made up.
+
+#### Why the log was not regenerated here, and why it was not reconstructed
+
+Regeneration was attempted and is **blocked in this environment**, verified rather than assumed:
+
+- `requirements.txt` pins **Python 3.13**; this container runs **3.11.15**. `pip install -r requirements.txt` fails outright — `zarr==3.3.0` has no 3.11-compatible distribution, and several other pins are 3.12+.
+- `numpy`/`pandas` are absent.
+- `data/` does not exist and is gitignored by design. `build_case()` asserts the cached IMD bulletin text at `data/cache/bulletin_texts.json`; the sweep needs that plus the IMD gridded rainfall (~490 MB) re-acquired.
+
+**The counts were therefore left in place, flagged, and not re-derived from the prose.** Reconstructing `artifacts/demo_profiles_endtoend.txt` from D-28's description of what it said would have produced a file that looks like evidence, matches the docs perfectly, and was written by an agent reading its own project's summary. That is the precise shape of the fabrication this project was set up to prevent — and it would have been *harder* to catch than the invented API endpoints, because it would agree with everything around it. TASKS.md now records the counts as **reproducible in principle, not evidenced in fact**, until a real run replaces them.
+
+The sweep *code* is committed and intact, so this is a re-run, not a rebuild.
+
+#### Also confirmed present and genuinely evidenced
+
+Spot-checked against the committed artifacts rather than the docs describing them:
+
+- **D-26's worked example** — `artifacts/stage4_profile_example.txt` carries the full run: shared prior (`active=0.077 break=0.097 transition=0.827`, `effective_n=20`), the AST boundary check (`raw evidence fields read directly: NONE`), the guard grid on both crops, `all-reference profile == base decide(): YES`, and the A→SOW (`E[sow] 4,093` vs `E[wait] 4,888`, `robust=False`) / B→WAIT flip. Matches TASKS.md exactly. (TASKS.md's "black soil" for Profile A is the plain-language label for the `CLAY` enum — `farmer_profile.py:126`, "vertisol / black cotton" — not a discrepancy.)
+- **D-22's rehearsal** — `artifacts/demo_2018_endtoend_run.txt` ends `DETERMINISM: 5 runs, IDENTICAL payload hash` / `GATE: PASS`.
+- **The 120M → 93.09M correction** — verified by grep over the whole tree. The corrected NSO 77th Round figure is carried in `RESEARCH.md:51`, `DATA.md:62`, `DISCUSSION.md:31`; all three surviving "120 million" mentions are explicit debunkings, not uses. **No source file or script uses 120M as a live figure.** TASKS.md ticked, with the scope limit recorded below.
+
+#### Genuinely absent, and out of this repo's reach
+
+- **`_PS1.pptx` and the "three regenerated graphics" do not exist here** — no `.pptx`, `.png`, `.jpg` or `.pdf` on disk or in any commit (`git log --all --diff-filter=A` over the full history). The only images ever committed are `artifacts/delivery_risk_indicator_2018.svg` and `artifacts/demo_2018_risk.svg`, both generated by `src/delivery/risk_display.py` — the single-region risk cards, not deck graphics. Nothing in any doc references a deck at all. **Not recoverable from this environment; would need rebuilding from scratch.**
+- Consequently the 120M→93M sweep **cannot cover slides.** If a deck exists off-repo, the figure has to be checked there separately. Recorded as an open sub-item under the now-ticked TASKS entry rather than swept under the tick.
+
+#### Residual inconsistency, logged not fixed
+
+ARCHITECTURE.md's Overview diagram still shows **Stage 3 — Bias Correction** inline in the flow and a **block choropleth** in the output layer. Neither is built: Phase 3 is entirely unstarted, and TASKS.md records the choropleth as *not built by design* (Stage 1 has no per-block number, so a choropleth would render spatial variation that does not exist). The stage sections below the diagram are correct and D-19-era; only the diagram lags. Left for a deliberate ARCHITECTURE pass rather than edited in during a reconciliation.
+
+**Net:** one `.gitignore` line fixed, one unverified-in-repo figure flagged, README rewritten to the actual architecture, TASKS.md checkboxes reconciled to verified state. **No Phase 5 rebuild is needed. One sweep needs re-running on an environment that can build the pinned requirements.**
