@@ -61,8 +61,12 @@ credible interval on the decision.
 
 PARAMETER PROVENANCE
 --------------------
-Every crop parameter here is PROVISIONAL and marked so. D-2 is still open and
-the numbers in it are now actively doubted -- see `CROP_DEFAULTS` and
+Every crop parameter here is PROVISIONAL and marked so. The MONETARY values are
+unsourced for all three crops. D-2's rainfall thresholds were superseded for
+SOYBEAN ONLY by D-29 (2026-09-08), which traced 100 mm to a primary ICAR-IISR
+bulletin; groundnut and cotton thresholds remain untraced and unset. `verified`
+stays False for all three -- it covers the whole `CropEconomics`, and D-29
+sources a rainfall number, not the crop economics. See `CROP_DEFAULTS` and
 RESEARCH.md. Any `DecisionResult` built from unverified parameters carries
 `uses_unverified_parameters=True` and a disclosure line, and the advisory text
 refuses to imply an official source.
@@ -108,10 +112,11 @@ class CropEconomics:
 
 
 # ---------------------------------------------------------------------------
-# PROVISIONAL crop defaults. NOT ICAR-VERIFIED. See RESEARCH.md and D-20.
+# PROVISIONAL crop defaults. The MONETARY values are NOT ICAR-VERIFIED for any
+# crop. See RESEARCH.md and D-20 / D-29.
 #
 # D-2 recorded soybean 50-75 mm / groundnut 50 mm / cotton 50-100 mm as
-# AI-generated and untraced. Attempting to trace them (2026-09-07) made the
+# AI-generated and untraced. The first tracing attempt (2026-09-07) made the
 # situation WORSE rather than better:
 #
 #   * A secondary trade source attributes "at least 100 mm" for soybean to
@@ -121,21 +126,52 @@ class CropEconomics:
 #     subdomain does not resolve from here (DNS failure on
 #     iisrindore.icar.gov.in and krishi.icar.gov.in; only icar.org.in resolves).
 #
-# So the D-2 numbers are not merely unverified, they are contradicted by the
-# only attributable figure found. Nothing below may be quoted as ICAR guidance.
-# The monetary values are illustrative placeholders and are not sourced at all.
+# SOYBEAN ONLY, SUPERSEDED 2026-09-08 (D-29): the primary bulletin WAS retrieved,
+# from `icar.org.in` (which resolves; `iisrindore.icar.gov.in` still does not).
+# It is genuine and it does say 100 mm. So for soybean the threshold is no
+# longer contradicted-and-untraced -- it is traced, with a stated scope limit
+# (single-week operational advisory, not a standing constant). Full citation in
+# that crop's `source` string below. GROUNDNUT AND COTTON ARE UNCHANGED: their
+# thresholds stay untraced and stay `None`, and the paragraph above still
+# describes them accurately.
+#
+# `verified` STAYS FALSE FOR ALL THREE CROPS, soybean included. D-29 sources a
+# rainfall number, not the crop economics; the monetary values remain
+# illustrative placeholders that are not sourced at all. Nothing below may be
+# quoted as ICAR guidance on costs.
 # ---------------------------------------------------------------------------
 CROP_DEFAULTS: dict[str, CropEconomics] = {
     "soybean": CropEconomics(
         crop="soybean",
         l_reseed=18000.0,
         l_delay=12000.0,
-        sowing_rain_threshold_mm=None,  # deliberately NOT set: see note above
+        # TRACED to a primary ICAR-IISR bulletin 2026-09-08 (D-29). Advisory
+        # context only -- this field is read NOWHERE in the decision path.
+        sowing_rain_threshold_mm=100.0,
         source=(
-            "PROVISIONAL / UNVERIFIED. Monetary values illustrative, not sourced. "
-            "Rainfall threshold intentionally omitted: D-2's 50-75 mm is untraced "
-            "and is contradicted by a secondary attribution of 100 mm to "
-            "ICAR-IISR Indore that cites no bulletin. See RESEARCH.md, D-20."
+            "RAINFALL THRESHOLD (100 mm): TRACED TO A PRIMARY SOURCE, 2026-09-08. "
+            "ICAR-Indian Institute of Soybean Research (ICAR-IISR), Khandwa Road, "
+            "Indore-452001, 'Weekly Advisory for Soybean Farmers (4-10th July "
+            "2022)', F.No. \u091f\u0947\u0915 10-6/2022, dated 04.07.2022. URL: "
+            "https://icar.org.in/sites/default/files/2023-02/Weekly%20Advisory%20"
+            "for%20Soybean%20Farmers%204th-10th%20July%202022.pdf . Verbatim: "
+            "'Farmers are advised to sow their soybean crop this week in case of "
+            "receipt of minimum 100 mm rainfall in their area.' "
+            "SCOPE LIMIT -- this is a SINGLE-WEEK OPERATIONAL ADVISORY issued for "
+            "one week of July 2022, in a season the same document describes as "
+            "having an 'uneven and erratic' monsoon arrival. It is NOT a "
+            "demonstrated standing constant: the FOLLOWING week's advisory "
+            "(11-17 July 2022) does NOT repeat the 100 mm figure and instead "
+            "treats the sowing window as closing, advising farmers who have not "
+            "sown to 'go for sowing of alternate remunerative crop'. "
+            "D-2's older 50-75 mm range remains UNTRACED and is NOT resolved by "
+            "this: it is plausibly a maize figure misattributed to soybean "
+            "somewhere upstream, since the 2025 national ICAR Kharif advisory "
+            "carries maize thresholds in that band (75-100 mm) while being "
+            "silent on any soybean sowing trigger. Noted, not closed. "
+            "verified STAYS FALSE. This bulletin sources the RAINFALL number "
+            "ONLY; l_reseed / l_delay remain unsourced illustrative placeholders "
+            "and are unaffected by this change. See RESEARCH.md and D-29."
         ),
         verified=False,
     ),

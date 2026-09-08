@@ -39,7 +39,8 @@ The pipeline, why each piece is shaped the way it is, and the answer to give whe
   ┌───────────────────────────┐
   │ STAGE 4 — DECISION ENGINE  │
   │ E[loss|sow] vs E[loss|wait] │
-  │ adjustable θ, ICAR defaults │
+  │ adjustable θ, PROVISIONAL   │
+  │ defaults (unsourced - D-29) │
   └────────────┬───────────────┘
         ┌──────┴──────┐
         ▼             ▼
@@ -211,7 +212,9 @@ So it's a comparison of two expected losses. **Both sides must be probability-we
 
 ### θ is an input, not a constant
 
-C and L vary enormously by crop, landholding size, irrigation access, and whether the farmer can afford to reseed at all. Hardcoding θ ≈ 0.3 is indefensible. It's exposed as an adjustable parameter with ICAR-sourced per-crop defaults.
+C and L vary enormously by crop, landholding size, irrigation access, and whether the farmer can afford to reseed at all. Hardcoding θ ≈ 0.3 is indefensible. It's exposed as an adjustable parameter with per-crop defaults.
+
+**Those defaults are NOT ICAR-sourced, and this line previously said they were.** Corrected 2026-09-08. The per-crop `l_reseed`/`l_delay` values are **illustrative placeholders, not traced to any source** — every `CropEconomics` carries `verified=False`, every `DecisionResult` carries `uses_unverified_parameters=True`, and the disclosure renders in both the farmer-facing advisory and the risk SVG. The only ICAR-sourced number in `CROP_DEFAULTS` is soybean's `sowing_rain_threshold_mm=100.0` (D-29), which is advisory context read by no code and is **not** part of θ. See D-20 / D-29.
 
 **Demo value:** sliding θ live and watching SOW flip to WAIT is one of the strongest interactive moments available.
 

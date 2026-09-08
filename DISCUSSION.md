@@ -41,8 +41,13 @@ Nobody on the team can independently recognise a leaked backtest or a disguised-
 
 **Still open:** whether anyone reviews the evaluation agent's own output. Consider assigning one person to own this and read `docs/VERIFICATION.md` closely enough to spot a violation.
 
-### D-2: ICAR sowing thresholds unverified — **OPEN**
+### D-2: ICAR sowing thresholds unverified — ~~**OPEN**~~ **SUPERSEDED FOR SOYBEAN 2026-09-08 (see D-29); STILL OPEN for groundnut and cotton**
 Per-crop thresholds (soybean 50–75mm, groundnut 50mm, cotton 50–100mm) came from AI-generated research and are plausible/consistent, but not traced to a specific published bulletin. **Must be traced before any number is hardcoded into Stage 4** — the "every recommendation is traceable to an official source" claim depends on it.
+
+> **SUPERSEDED, NOT DELETED — 2026-09-08, by D-29.** Kept because the reasoning above is still correct and still governs two of the three crops.
+> - **Soybean: resolved, and the D-2 number was wrong.** The primary bulletin was retrieved and gives **100 mm**, not 50–75 mm. `sowing_rain_threshold_mm=100.0` is now set for soybean, with the citation in its `source` string. **D-2's 50–75 mm remains untraced** and is plausibly a **maize** figure misattributed to soybean upstream — noted in D-29, not closed.
+> - **Groundnut (50 mm) and cotton (50–100 mm): still open, still untraced, still `None` in code.** Nothing about them changed.
+> - **The "hardcoded into Stage 4" bar was met differently than this entry assumed.** The threshold is not *used* by Stage 4 at all — it is read nowhere in the codebase (AST-verified), so setting it hardcodes a citation, not a decision input. `verified` stays `False` for all three crops because it covers the unsourced `l_reseed`/`l_delay` as well.
 
 ### D-3: Ground truth is coarser than target output — **OPEN, DISCLOSE**
 Stage 3 calibrates against IMD gridded rainfall at 0.25° (~25km), while target output is block-level. We're correcting toward a coarser reference. Real methodological caveat. Currently handled by disclosure rather than solution. Is there a finer ground-truth source worth pursuing?
@@ -866,7 +871,7 @@ Schema additions: `seasonal_analog_advisory_visible` (bool), `farmer_facing_evid
 
 **Stage 4 not started.** When built, its advisory generator consumes `advisory_evidence_lines(prior)` rather than the raw fields.
 
-### D-20: Stage 4 decision engine built; ICAR citation **STILL OPEN and now contested** — **BUILT / one item open**
+### D-20: Stage 4 decision engine built; ICAR citation ~~**STILL OPEN and now contested**~~ **— citation SUPERSEDED 2026-09-08 by D-29** — **BUILT / one item open**
 
 Run: `python -m src.models.run_stage4_decision`, log `artifacts/stage4_decision_example.txt`. Last core stage.
 
@@ -907,7 +912,11 @@ theta = 1.50 → **WAIT**, margin −2,804 INR/ha. Envelope: WAIT at point, `bre
 
 Both farmer-facing evidence lines appear (analog + bulletin), and the advisory carries the provisional-parameters disclosure.
 
-#### ICAR citation status: **STILL OPEN — and the attempt made it worse**
+#### ICAR citation status: ~~**STILL OPEN — and the attempt made it worse**~~ → **SUPERSEDED 2026-09-08 by D-29**
+
+> **SUPERSEDED, NOT DELETED.** The account below was accurate on 2026-09-07 and is kept as the record of how the figure was contested. **D-29 (2026-09-08) retrieved the primary bulletin and confirmed 100 mm.** Two specific corrections to the text below: (i) 100 mm is no longer attributable only to a trade website — it is now cited to ICAR-IISR's own dated, numbered bulletin; (ii) the retrieval failure was **host-specific**, not general — `iisrindore.icar.gov.in` still does not resolve, but `icar.org.in` does and served the document.
+>
+> **Unchanged by D-29:** everything in the "Enforced in code" paragraph below about `verified=False`, `uses_unverified_parameters=True` and the rendered disclosure. Those all still hold, for all three crops, and were re-verified empirically after the D-29 edit. The monetary values are still unsourced. Only soybean's `sowing_rain_threshold_mm` changed, from `None` to `100.0`.
 
 Reported plainly, as asked. Tracing D-2's soybean threshold did not confirm it:
 
@@ -918,7 +927,7 @@ Reported plainly, as asked. Tracing D-2's soybean threshold did not confirm it:
 
 **Enforced in code:** `sowing_rain_threshold_mm=None` for every crop; all `CropEconomics.verified=False`; every `DecisionResult` carries `uses_unverified_parameters=True` and renders a disclosure in both the technical output and the farmer-facing advisory. **No ICAR number is hardcoded.** The monetary values are illustrative placeholders and are not sourced at all — they demonstrate the method, and must be replaced with locally sourced figures before anyone acts on a recommendation.
 
-D-2 remains **OPEN**; RESEARCH.md now carries a new **§ Contested** section recording both figures and the failed retrieval.
+D-2 remains **OPEN**; RESEARCH.md now carries a new **§ Contested** section recording both figures and the failed retrieval. *(2026-09-08: D-2 is now superseded for soybean and the § Contested section is marked superseded — see D-29. It remains open for groundnut and cotton.)*
 
 ### D-21: Delivery layer built; **no target language is specified anywhere in the repo** — **BUILT / one blocking item open**
 
@@ -1683,6 +1692,85 @@ GATE: PASS -- every reachable combination is scored or cleanly refused
 #### Honest limits
 
 Unchanged from D-26/D-27: the multiplier tables are illustrative and uncalibrated; no profile personalises Stage 1's probabilities; the post-sowing action set is still not modelled — free selection now makes it reachable in 243 ways, and all 243 say so explicitly rather than guessing.
+
+---
+
+### D-29: Soybean sowing rainfall threshold **TRACED to a primary ICAR-IISR bulletin** — threshold set to 100 mm, `verified` stays **False** — **2026-09-08, CLOSED for the rainfall number / STILL OPEN for the crop economics**
+
+Closes the *rainfall* half of D-2/D-20 for soybean only. Supersedes RESEARCH.md § Contested and the D-20 "STILL OPEN" subsection. **Does not close D-2 for groundnut or cotton, and does not close the crop economics for any crop.**
+
+#### The citation
+
+**ICAR-Indian Institute of Soybean Research (ICAR-IISR)**, Khandwa Road, Indore-452001
+*Weekly Advisory for Soybean Farmers (4-10th July 2022)*
+**F.No. टेक 10-6/2022**, dated **04.07.2022**
+`https://icar.org.in/sites/default/files/2023-02/Weekly%20Advisory%20for%20Soybean%20Farmers%204th-10th%20July%202022.pdf`
+
+Verbatim, table row 1:
+
+> "Farmers are advised to sow their soybean crop this week in case of receipt of minimum 100 mm rainfall in their area."
+
+**Read page-by-page from the rendered PDF, not from a text-extraction summary.** This matters: the automated extractor initially reported *"100 mm does not appear"*, which was an extraction failure on the PDF's compressed streams, **not** absence. An extraction miss is not evidence about a document's contents — the same distinction D-20 drew about the DNS failure.
+
+**Why the earlier retrieval failed, precisely.** The D-20 finding was host-specific, not general. `iisrindore.icar.gov.in` was retested on 2026-09-08 and **still fails with `ENOTFOUND`** — that part of D-20 remains accurate and current. But `icar.org.in` resolves fine and serves the bulletin. D-20 concluded "the primary source could not be retrieved" from a test of the institute subdomain alone; the document was reachable on the parent domain the whole time.
+
+#### Two negative findings that bound the claim
+
+Both are mine, from the same investigation, and both are the reason this is **not** written up as a standing ICAR constant.
+
+**1. The following week's advisory does not repeat it — and points the other way.** The ICAR-IISR advisory for **11–17 July 2022**, the very next week, contains no 100 mm figure. It treats the sowing window as *closing*:
+
+> "the sowing should be completed before the first week of July. Those farmers who have not yet completed the sowing are advised to go for sowing of alternate remunerative crop."
+
+So 100 mm is a **within-window operational trigger**, issued for one week, in a season the 04.07.2022 document itself describes as having an *"uneven and erratic"* monsoon arrival. It is not demonstrated to recur.
+
+**2. The 2025 national document is silent on soybean, and its 50–100 mm numbers are maize.** A full-text scan of the **ICAR Kharif Agro-Advisories for Farmers 2025** (310 pp, national) found **only two "100 mm" hits in the entire document, both maize** (75–100 mm). Its soybean pages carry annual-rainfall context only — **no sowing-rain trigger at all**. The document does give sowing triggers for other crops: ~50–60 mm (cotton; light soils), ~60–75 mm (heavy soils), 80 mm (green gram).
+
+**That bracket is the interesting part.** D-2's untraced "soybean 50–75 mm" sits squarely inside the range this national document assigns to *other crops, mostly maize*. The most economical explanation is that **50–75 mm is a real agronomic figure attached to the wrong crop somewhere upstream** — not an invention. **Noted, not resolved.** D-2's 50–75 mm is still untraced and still must not be used; this is a hypothesis about its origin, not a trace of it.
+
+*Also recorded, since it bounds what can be checked later:* **every 2023 weekly advisory on ICAR's own site is a dead link** (404 on both `icar.org.in` and `www.icar.org.in`), including all the June/July sowing-window ones. They are listed but not retrievable. So the cross-year test could not be run against 2023 at all — that is a gap in the evidence, not a negative result.
+
+#### What changed in code, and what deliberately did not
+
+| | Before | After |
+|---|---|---|
+| soybean `sowing_rain_threshold_mm` | `None` | **`100.0`** |
+| soybean `verified` | `False` | **`False` — untouched** |
+| soybean `source` | claimed 100 mm "cites no bulletin" — **now false** | full citation + scope limit |
+| groundnut / cotton (all fields) | — | **untouched** |
+
+**`verified` stays `False`, deliberately.** This is the load-bearing decision in D-29, and it is a Rule 4 call. The flag is **object-wide, not per-field**: it is read at exactly one site (`decision_engine.py`, `uses_unverified_parameters=not econ.verified`) and it governs the whole `CropEconomics`, including `l_reseed=18000` / `l_delay=12000`. Those are **illustrative placeholders and are not sourced at all** — D-20's words, still true. The bulletin sources a *rainfall depth*; it says nothing whatsoever about rupees.
+
+Flipping it would have measurable, farmer-facing consequences — measured, not predicted:
+
+- the WhatsApp advisory would **lose** *"IMPORTANT: the rupee figures above are illustrative examples, not verified local prices. Check current input and reseeding costs with your Krishi Vigyan Kendra before deciding."* (−177 chars)
+- the risk SVG would **lose** its *"cost figures illustrative, not verified local prices"* note
+- `disclosure()` would render *"Cost parameters source: PROVISIONAL / UNVERIFIED…"* — a string that says "unverified" under a "source" header
+
+That is deleting an honest limit to make something sound better, on the strength of a document that does not support the thing being deleted. **No.**
+
+#### Decided against: a separate provenance field
+
+A per-field marker (`threshold_source` / `threshold_verified`) was proposed in the interim report and **rejected**. `sowing_rain_threshold_mm` is consumed nowhere; a provenance flag for a field nothing reads is schema complexity with no reader. The citation goes in the existing `source` string instead. Revisit only if the threshold ever becomes a decision input.
+
+#### Verified empirically after the edit, not assumed
+
+A probe built a `RegimePrior` and ran the real `decide()` → `advisory.render()` → `build_indicator()` chain for all three crops, before and after, diffing every farmer-visible field:
+
+- **groundnut and cotton: no difference in any captured field.** Both still `uses_unverified_parameters=True`, `threshold=None`, `verified=False`, disclosure shown, SVG note present.
+- **soybean: 17 of 20 fields byte-identical**, including `recommendation=wait`, `e_loss_sow=7692.12`, `e_loss_wait=4888.08`, `margin`, `theta=1.5`, `robust=True`, `uses_unverified_parameters=True`, **the entire farmer-facing advisory text (760 chars, unchanged)**, and the risk SVG (identical length, note present). The only changes are `threshold` (`None`→`100.0`) and the two strings that embed `source`.
+- **`sowing_rain_threshold_mm` re-checked by AST after the edit**: 1 field declaration + 3 `CROP_DEFAULTS` keyword args, **zero reads**. Setting it changed no behaviour because nothing consumes it.
+
+*Known side effect, accepted:* the `source` string grew 261→1456 chars, so the **technical** `disclosure()` and the engine's `advisory_text()` preview grew with it (924→2119 chars). Neither is on the delivery path — `src/delivery/advisory.py` renders its own fixed farmer-facing disclosure and is unaffected. The longer string surfaces in `artifacts/stage4_decision_example.txt` and the `/profiles` JSON `disclosure` field, where the provenance belongs.
+
+*Noted, not changed:* `src/demo/case.py::DemoCase.econ()` rebuilds `CropEconomics` field-by-field and does **not** carry `sowing_rain_threshold_mm` through, so the demo path sees `None` for it. No behavioural impact today (nothing reads the field), but it would become a real bug the moment anything does. `farmer_profile.py` uses `replace()` and preserves it correctly.
+
+#### What is still open after this
+
+- **D-2 for groundnut and cotton** — untraced, unchanged, `None`.
+- **The crop economics for all three crops** — `l_reseed`/`l_delay` unsourced. This is the blocker on `verified`, and it needs locally sourced cost figures, not another bulletin.
+- **D-2's 50–75 mm** — origin hypothesised (misattributed maize), not traced.
+- **Cross-year corroboration for the 100 mm figure** — cannot currently be run: 2023 advisories are 404 on ICAR's server, and the institute subdomain does not resolve.
 
 ---
 
