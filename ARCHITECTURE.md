@@ -6,46 +6,53 @@ The pipeline, why each piece is shaped the way it is, and the answer to give whe
 
 ## Overview
 
+**This is the pipeline as it actually stands — built stages solid, the one unstarted stage marked and bypassed, not drawn as if it were in the data flow:**
+
 ```
-[20 yr observed Rajeevan labels]      [Local block history]
- IMD gridded rainfall (imdlib)        IMDAA reanalysis (IndiaWeatherBench)
+[20 yr observed Rajeevan labels]      [IMD Extended Range bulletins]
+ IMD gridded rainfall (imdlib)         (trough position, cached/parsed)
           │                                      │
           ▼                                      │
-  ┌───────────────────────────┐                  │
-  │ STAGE 1 — CLIMATOLOGICAL   │                 │
-  │           REGIME PRIOR     │                 │
-  │ target date → base rate    │                 │
-  │ P(active/break/transition) │                 │
-  │ + block-bootstrap CI       │                 │
-  │ NO LEAD TIME. NOT A FORECAST│                │
-  └────────────┬───────────────┘                 │
+  ┌────────────────────────────┐                 │
+  │ STAGE 1 — CLIMATOLOGICAL    │                 │
+  │           REGIME PRIOR      │                 │
+  │ target date → base rate     │                 │
+  │ P(active/break/transition)  │                 │
+  │ + block-bootstrap CI        │                 │
+  │ NO LEAD TIME. NOT A FORECAST│                 │
+  └────────────┬─────────────────┘                │
                ▼                                  │
-  ┌───────────────────────────┐                  │
-  │ STAGE 2 — SEASONAL ANALOG   │◄───────────────┘
-  │           EVIDENCE          │
-  │ K=5 nearest pre-season yrs, │
-  │ report what ACTUALLY happened│
+  ┌────────────────────────────┐                  │
+  │ STAGE 2 — SEASONAL ANALOG   │◄─────────────────┘
+  │           EVIDENCE          │◄──── seasonal ENSO/IOD analogs (K=5)
+  │ what ACTUALLY happened in   │
+  │ the closest historical yrs, │
+  │ + IMD bulletin trough text  │
   │ • target year excluded      │
   │ • disagreement surfaced     │
   │ • TEXT ONLY — no probability│
-  └────────────┬───────────────┘
-               ▼
-  ┌───────────────────────────┐
-  │ STAGE 3 — BIAS CORRECTION  │
-  │ gradient boosting, calibrated│
-  │ against real IMD records    │
-  └────────────┬───────────────┘
-               ▼
-  ┌───────────────────────────┐
-  │ STAGE 4 — DECISION ENGINE  │
+  └────────────┬─────────────────┘
+               │
+               │    ┌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┐
+               │    ╎ STAGE 3 — BIAS CORRECTION  ╎  NOT BUILT (Phase 3 unstarted).
+               │    ╎ gradient boosting toward   ╎  Spec only — see Stage 3 below.
+               │    ╎ station data (spec only)   ╎  Block-scale output depends on
+               │    └╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┘  this; not on the current path.
+               ▼            (bypassed — no code calls this today)
+  ┌────────────────────────────┐
+  │ STAGE 4 — DECISION ENGINE   │
   │ E[loss|sow] vs E[loss|wait] │
-  │ adjustable θ, ICAR defaults │
-  └────────────┬───────────────┘
+  │ both branches probability-  │
+  │ weighted; adjustable θ;     │
+  │ per-farmer loss adjustments │
+  │ (crop/irrigation/soil/risk) │
+  └────────────┬─────────────────┘
         ┌──────┴──────┐
         ▼             ▼
-   Risk map      WhatsApp advisory
-   (block        (regional
-    choropleth)   language)
+  Single-region   WhatsApp advisory
+  risk indicator  (English verified;
+  (NOT a          Hindi UNVERIFIED
+   choropleth)     stub, D-21)
 ```
 
 ---
@@ -179,6 +186,8 @@ Mondal & Mujumdar (2015) document real non-stationarity in Indian extreme rainfa
 ---
 
 ## Stage 3 — Bias Correction
+
+> 🔴 **NOT BUILT. Spec only.** Phase 3 has not been started (TASKS.md). Nothing in `src/` calls this stage — Stage 4 currently consumes Stage 1+2's `RegimePrior` directly, unmodified. Block-scale output depends on this stage existing; until it does, output stays at monsoon-core-zone regional resolution. Described here as the intended design, not as current capability — see the Overview diagram above for how it sits outside today's actual data flow.
 
 **Model:** gradient-boosted residual model
 **Calibrated against:** IMD gridded rainfall records via `imdlib`

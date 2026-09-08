@@ -1823,3 +1823,15 @@ ARCHITECTURE.md's Overview diagram still shows **Stage 3 — Bias Correction** i
 **Net result: the sweep was not run. No artifact was written, real or otherwise.** TASKS.md's D-28 sweep line stays `[~]`; a new sub-item records this attempt and its actual blocker (network policy on external data hosts, not the Python pin D-29 named). The 648/81/243/324 figures remain exactly where D-29 left them: reproducible in principle, not evidenced in fact, in this repo.
 
 **What would actually unblock this:** either (a) an environment whose network policy allowlists `imdpune.gov.in`, `www.cpc.ncep.noaa.gov`, `psl.noaa.gov`, `www.bom.gov.au` and `internal.imd.gov.in`, or (b) a real, previously-acquired `data/` cache (specifically `data/raw/imd/rain/*.GRD` for 2000–2019 and `data/cache/bulletin_texts.json`) copied in from wherever D-27/D-28's original run produced it. Neither exists in any environment this project has had access to so far. This is not a code problem and re-running `run_profiles_demo.py` again in an unchanged environment will fail the same way.
+
+---
+
+### D-31: ARCHITECTURE.md Overview diagram corrected to match the actual data flow — closes the D-29 residual note
+
+**Date:** 2026-09-08. D-29 flagged, but deliberately did not fix, that the Overview diagram in `ARCHITECTURE.md` still drew **Stage 3 — Bias Correction** inline in the pipeline and a **block choropleth** in the output layer, while the stage sections below the diagram (and TASKS.md) already correctly stated neither is built. This closes that gap.
+
+**Verified before editing, not assumed:** `src/models/decision_engine.py::decide()` takes `(prior: RegimePrior, econ: CropEconomics)` directly — Stage 1+2's output, unmodified. No Stage 3 module exists in `src/models/`, and nothing in `src/` imports or calls one. The diagram now draws Stage 3 as a **dashed, explicitly "NOT BUILT (Phase 3 unstarted)"** box beside the real path rather than inline in it, with Stage 2's arrow going straight to Stage 4. The output layer's two boxes now read **"single-region risk indicator (NOT a choropleth)"** and **"WhatsApp advisory (English verified; Hindi UNVERIFIED stub, D-21)"**, matching the prose immediately below the diagram that already said this. Added the same `🔴 NOT BUILT` flag directly under the `## Stage 3` heading, in the same style already used for the choropleth and the output-tiering table elsewhere in the file, so a reader hitting that section top-to-bottom sees the caveat before the description, not after.
+
+Also updated the diagram's Stage 2 inputs to name what actually feeds it (IMD Extended Range bulletin trough text, cached/parsed; seasonal ENSO/IOD analogs) — the old diagram's "IMDAA reanalysis (IndiaWeatherBench)" input to Stage 2 was left over from the retired regime-forecaster design (D-14) and Stage 2 does not read IMDAA at all.
+
+No code changed. No claim changed — this only makes the diagram agree with sections of the same document that were already correct.
