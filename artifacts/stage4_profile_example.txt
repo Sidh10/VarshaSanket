@@ -1,0 +1,170 @@
+==============================================================================
+STAGE 1 PRIOR (shared by every profile -- NEVER modified)
+==============================================================================
+RegimePrior 2018-07-15 (doy 196)
+  P: active=0.077  break=0.097  transition=0.827
+  95% CI: active=[0.027,0.133]  break=[0.030,0.180]  transition=[0.740,0.910]
+  effective_n=20 years  (300 labelled days, autocorrelated)
+  method: climatological base rate; day-of-year +/-7d smoothing; block bootstrap over 20 years (n_boot=2000); NO forecast component
+  [bulletin evidence]  advisory_evidence: IMD Extended Range bulletin places the monsoon trough north of its normal position in week 2, which IMD's glossary associates with a break in rainfall over central India.
+  [analog evidence]    seasonal_analog_evidence: The 5 historical seasons whose pre-monsoon ENSO/IOD state most resembled 2018: 2001 was normal; 2006 was wet; 2003 was wet; 2008 was wet; 2012 was normal. 3 of 5 ended wet, but not all (0 dry, 2 normal, 3 wet). This is a historical tendency among close seasons, not a forecast.
+    analogs: 2001(d=0.57,normal)  2006(d=0.66,wet)  2003(d=0.74,wet)  2008(d=0.76,wet)  2012(d=0.89,normal)
+    agreement=leaning  effective_n=4.99  [advisory-visible: True]
+
+  Farmer-facing evidence lines (D-19 boundary, profile-independent):
+    - The 5 historical seasons whose pre-monsoon ENSO/IOD state most resembled 2018: 2001 was normal; 2006 was wet; 2003 was wet; 2008 was wet; 2012 was normal. 3 of 5 ended wet, but not all (0 dry, 2 normal, 3 wet). This is a historical tendency among close seasons, not a forecast.
+    - IMD Extended Range bulletin places the monsoon trough north of its normal position in week 2, which IMD's glossary associates with a break in rainfall over central India.
+
+==============================================================================
+D-19 BOUNDARY CHECK -- farmer_profile.py (by AST inspection)
+==============================================================================
+  imports advisory_evidence_lines : True
+  calls   advisory_evidence_lines : True
+  raw evidence fields read directly: NONE
+  probability fields read in adjust/decide core: NONE (module-wide, only in immutability asserts: ['probabilities'])
+  -> the profile layer moves losses only; probabilities are inaccessible to it.
+
+>>> guard + immutability grid on base crop = soybean
+==============================================================================
+D-C GUARD CHECK -- profile paths
+==============================================================================
+  27 pre-sowing profile combinations
+    - all routed through decide() -> _expected_loss -> _assert_is_expectation
+    - both loss vectors non-constant in every combination
+    - farmer-facing evidence lines identical across all 27 (D-19 intact)
+  collapsed-branch adjustment rejected        : YES
+    -> [sow] loss vector is constant across regimes (0.0). That makes this branch a flat number, wh...
+  zeroed multiplier caught at adjustment       : YES
+    -> tampered: profile adjustment produced a non-positive / out-of-range loss term (l_reseed=0.0,...
+
+==============================================================================
+STAGE 1 IMMUTABILITY CHECK -- probabilities are never touched
+==============================================================================
+  27 profiles: DecisionResult.probabilities == prior.probabilities exactly
+  prior P: active=0.0767  break=0.0967  transition=0.8267
+
+  all-reference profile == base decide()      : YES (E[sow] 7,692.0, E[wait] 4,888.0)
+
+>>> guard + immutability grid on base crop = cotton
+==============================================================================
+D-C GUARD CHECK -- profile paths
+==============================================================================
+  27 pre-sowing profile combinations
+    - all routed through decide() -> _expected_loss -> _assert_is_expectation
+    - both loss vectors non-constant in every combination
+    - farmer-facing evidence lines identical across all 27 (D-19 intact)
+  collapsed-branch adjustment rejected        : YES
+    -> [sow] loss vector is constant across regimes (0.0). That makes this branch a flat number, wh...
+  zeroed multiplier caught at adjustment       : YES
+    -> tampered: profile adjustment produced a non-positive / out-of-range loss term (l_reseed=0.0,...
+
+==============================================================================
+STAGE 1 IMMUTABILITY CHECK -- probabilities are never touched
+==============================================================================
+  27 profiles: DecisionResult.probabilities == prior.probabilities exactly
+  prior P: active=0.0767  break=0.0967  transition=0.8267
+
+  all-reference profile == base decide()      : YES (E[sow] 12,820.0, E[wait] 8,146.7)
+
+==============================================================================
+BASE CASES -- no profile (crop defaults)
+==============================================================================
+  soybean    L_reseed=18,000  L_delay=12,000  alpha=0.4  theta=1.500
+             E[loss|SOW]=     7,692   E[loss|WAIT]=     4,888   -> WAIT (robust=True)
+  cotton     L_reseed=30,000  L_delay=20,000  alpha=0.4  theta=1.500
+             E[loss|SOW]=    12,820   E[loss|WAIT]=     8,147   -> WAIT (robust=True)
+
+==============================================================================
+TWO ILLUSTRATIVE PROFILES -- SAME date, SAME regime probabilities
+==============================================================================
+  target date : 2018-07-15
+  P(active)=0.0767  P(break)=0.0967  P(transition)=0.8267   <- identical for both profiles
+
+------------------------------------------------------------------------------
+Demo profile A -- rainfed black-soil soybean smallholder  [ILLUSTRATIVE DEMO PROFILE -- not a real user]
+  crop=soybean  sowing=pre_sowing  irrigation=rainfed  soil=clay  risk=risk_tolerant
+  loss multipliers: L_reseed x0.69  L_delay x1.00  alpha x0.70
+  theta: base 1.500 -> effective 1.040  (reported, NOT a threshold)
+  E[loss|SOW] =      4,093 INR/ha    E[loss|WAIT] =      4,888 INR/ha
+  RECOMMENDATION: SOW  (margin E[wait]-E[sow] = +795; robust=False)
+
+  term-by-term (both branches are expectations over the SAME distribution):
+    active      P=0.0767  L_sow=         0  L_wait=    12,000  contrib_sow=      0.0  contrib_wait=    920.0
+    break       P=0.0967  L_sow=    12,474  L_wait=         0  contrib_sow=  1,205.8  contrib_wait=      0.0
+    transition  P=0.8267  L_sow=     3,493  L_wait=     4,800  contrib_sow=  2,887.3  contrib_wait=  3,968.0
+                                                    totals  E[SOW]=  4,093.1  E[WAIT]=  4,888.0
+    sensitivity envelope (marginal CI on P(break); NOT a joint interval):
+      point       E[sow]=  4,093.1  E[wait]=  4,888.0  -> SOW
+      break_low   E[sow]=  3,474.6  E[wait]=  5,248.7  -> SOW
+      break_high  E[sow]=  4,867.1  E[wait]=  4,436.6  -> WAIT
+    robust across envelope: False
+
+------------------------------------------------------------------------------
+Demo profile B -- irrigated sandy-plot cotton grower  [ILLUSTRATIVE DEMO PROFILE -- not a real user]
+  crop=cotton  sowing=pre_sowing  irrigation=assured  soil=sandy  risk=risk_averse
+  loss multipliers: L_reseed x1.49  L_delay x0.55  alpha x1.35
+  theta: base 1.500 -> effective 4.077  (reported, NOT a threshold)
+  E[loss|SOW] =     24,357 INR/ha    E[loss|WAIT] =      4,481 INR/ha
+  RECOMMENDATION: WAIT  (margin E[wait]-E[sow] = -19,876; robust=True)
+
+  term-by-term (both branches are expectations over the SAME distribution):
+    active      P=0.0767  L_sow=         0  L_wait=    11,000  contrib_sow=      0.0  contrib_wait=    843.3
+    break       P=0.0967  L_sow=    44,850  L_wait=         0  contrib_sow=  4,335.5  contrib_wait=      0.0
+    transition  P=0.8267  L_sow=    24,219  L_wait=     4,400  contrib_sow= 20,021.0  contrib_wait=  3,637.3
+                                                    totals  E[SOW]= 24,356.5  E[WAIT]=  4,480.7
+    sensitivity envelope (marginal CI on P(break); NOT a joint interval):
+      point       E[sow]= 24,356.5  E[wait]=  4,480.7  -> WAIT
+      break_low   E[sow]= 22,844.1  E[wait]=  4,811.3  -> WAIT
+      break_high  E[sow]= 26,249.0  E[wait]=  4,066.9  -> WAIT
+    robust across envelope: True
+
+==============================================================================
+CONTRAST
+==============================================================================
+  Demo profile A -- rainfed black-soil soybean smallholder
+    E[SOW]=4,093  E[WAIT]=4,888  -> SOW
+  Demo profile B -- irrigated sandy-plot cotton grower
+    E[SOW]=24,357  E[WAIT]=4,481  -> WAIT
+
+  Same P(break)=9.7%. The recommendations differ
+  because the loss inputs differ -- crop AND the profile fields:
+    A: crop=soybean  L_reseed x0.69  L_delay x1.00  alpha x0.70   (rainfed -> waiting costs full; clay -> stand survives a short break; tolerant)
+    B: crop=cotton   L_reseed x1.49  L_delay x0.55  alpha x1.35   (borewell -> waiting is cheap; sandy -> bed dries fast; averse)
+
+==============================================================================
+CONTROL -- Profile B's situation on soybean (A's crop)
+==============================================================================
+  Demo profile B's situation, soybean instead of cotton
+    E[SOW]=14,614  E[WAIT]=2,688  -> WAIT  (robust=True)
+
+  Profile B's fields land on WAIT even with soybean
+  underneath -- so the flip vs Profile A is driven by the profile (irrigation/soil/risk), not just the choice of crop.
+
+==============================================================================
+PROFILE C -- already sown: SOW/WAIT does not apply
+==============================================================================
+Demo profile C -- crop already sown, at germination  [ILLUSTRATIVE DEMO PROFILE -- not a real user]
+  crop=soybean  sowing=sown  irrigation=partial  soil=loam  risk=neutral
+  growth_stage=germination
+  applicability: post_sowing_contingency_not_modelled
+  -> NO SOW/WAIT RECOMMENDATION. This farmer has already sown; the live decision is whether to protect the standing crop against a forecast break (crop at germination), which is a different action set with different losses. Stage 4 models the pre-sowing SOW/WAIT decision only. Emitting a SOW/WAIT recommendation here would misapply the model.
+
+==============================================================================
+ADVISORY EVIDENCE IS PROFILE-INDEPENDENT
+==============================================================================
+  advisory_evidence_lines(prior) is the ONLY evidence source (D-19).
+  Verified identical for base, Profile A, Profile B:
+    - The 5 historical seasons whose pre-monsoon ENSO/IOD state most resembled 2018: 2001 was normal; 2006 was wet; 2003 was wet; 2008 was wet; 2012 was normal. 3 of 5 ended wet, but not all (0 dry, 2 normal, 3 wet). This is a historical tendency among close seasons, not a forecast.
+    - IMD Extended Range bulletin places the monsoon trough north of its normal position in week 2, which IMD's glossary associates with a break in rainfall over central India.
+
+  A profile changes the recommendation and the rupee losses shown.
+  It never changes which evidence lines are eligible to display.
+
+==============================================================================
+DISCLOSURE
+==============================================================================
+  All profiles are ILLUSTRATIVE DEMO profiles, not real registered users.
+  Profile multiplier tables are illustrative directions/magnitudes, NOT
+  calibrated to surveyed farm economics -- same standard as the D-20
+  crop-loss thresholds. Every DecisionResult still carries
+  uses_unverified_parameters=True.

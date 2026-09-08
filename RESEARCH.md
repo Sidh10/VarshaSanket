@@ -41,6 +41,7 @@ Status codes: ✅ verified against primary source · ⚠️ verified via seconda
 | Mission Mausam / GPLWF launched 24 Oct 2024 with Ministry of Panchayati Raj; delivered via e-GramSwaraj, Meri Panchayat, Mausamgram; **≤10 day horizon, currently 12km** (1km is a stated future goal) | ✅ |
 | IITM ERPAS/ERPv2 produces operational extended-range active/break forecasts; **data access restricted** on IRI Data Library | ✅ |
 | 199 District Agromet Units (DAMUs) wound up from March 2024 | ✅ |
+| **`imdgeospatial.imd.gov.in/agromet.html` launcher page; hosts links to KALP and SANKALP** — Accessed 2026-09-08: both KALP (`webgis.imd.gov.in/agro/`, Django + Leaflet, 0.125° GFS-derived grid, 5-day rolling retention) and SANKALP (`mausamsankalp.imd.gov.in/`, Flask + Plotly, 30-year dry/wet-spell climatology at block scale) verified live, no login/CAPTCHA gates. Resolves to 103.215.208.101. See D-25 full analysis. | ✅ **(formerly wrongly listed in § Debunked)** |
 | NAMASTE portal (Ministry of Ayush) is real — standardized Ayush terminology, ICD-11 integrated | ✅ *(context only, not used by this project)* |
 
 ### Impact figures
@@ -60,7 +61,7 @@ These all surfaced during research as confident, plausible, specific claims. All
 | ❌ Claim | Why it's wrong |
 |---|---|
 | **"120 million farm households"** | **Inflated.** The authoritative NSO 77th Round figure is **93.09 million** agricultural households (or ~102 million operational holdings). The 120M figure was never sourced. Earlier drafts of the pitch used it — correct anywhere it appears. |
-| **`api.imd.gov.in` real-time API** (also `mausam.imd.gov.in/responsive/apis.php`, `imdgeospatial.imd.gov.in`, "IMDAPIs Portal", IP-whitelisting process) | Claimed by three separate AI research passes with different URLs each time. Never independently confirmed to exist. **Do not build against it.** |
+| **`api.imd.gov.in` real-time REST API** (with IP-whitelisting authentication; also `mausam.imd.gov.in/responsive/apis.php`, "IMDAPIs Portal") | Claimed by three separate AI research passes with different URLs each time. Never independently confirmed to exist. **Do not build against it.** |
 | **"Barnston & Livezey (1987), Cross-Validation and Statistical Predictability in Meteorology, J. Clim. Appl. Meteorol. 26:1589–1608"** | Fabricated. That journal/volume/page is **Michaelsen (1987), single author, different title** — verified against the original PDF. Barnston & Livezey are real scientists whose actual 1987 work is on circulation pattern classification. |
 | **"Jaiswal, Kishtawal & Bhomia (2018)"** analog multi-model ensemble for monsoon | Never located despite repeated search. Do not cite. |
 | **SIH26080 / SIH26081 described as "past hackathon teams" with "judge feedback"** | They are **2026 sibling problem statements** from the same sponsor — currently open, zero prior submissions. An entire fabricated prior-art narrative was built on this. |

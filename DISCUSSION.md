@@ -1067,6 +1067,513 @@ Live browser: default θ=1.5 → **WAIT** (robust), E[sow] 7,692 / E[wait] 4,888
 
 ---
 
+### D-23: Can "today's real date" (2026-09-08) be a second demo case? — **NO. Stage 2 breaks; the case would also be strictly weaker.** Verification only, nothing fixed.
+
+Verification pass requested against today's date, run **2026-09-08**. No delivery-path change: `src/demo/server.py` and the live demo are untouched, and **nothing was fixed** — the two blockers below are decisions, not autofixes. All work was throwaway scratchpad probes.
+
+**Verdict: 2026-09-08 stays an honest scope answer for Q&A. It does not become a second verified demo case.** Two independent reasons, one mechanical and one substantive.
+
+#### 1. Stage 1 climatological prior — runs clean ✅ (but see the caveat, which is the real finding)
+
+```
+RegimePrior 2026-09-08 (doy 251)
+  P: active=0.090  break=0.137  transition=0.773
+  95% CI: active=[0.027,0.170]  break=[0.060,0.220]  transition=[0.683,0.857]
+  effective_n=20 years  (300 labelled days, autocorrelated)
+  method: climatological base rate; day-of-year +/-7d smoothing;
+          block bootstrap over 20 years (n_boot=2000); NO forecast component
+```
+
+| | 2018-07-15 (doy 196) | 2026-09-08 (doy 251) |
+|---|---|---|
+| active | 0.0767 | 0.0900 |
+| break | 0.0967 | **0.1367** |
+| transition | 0.8267 | 0.7733 |
+
+Break base rate is ~41% higher in early September than mid-July — a real seasonal feature of the record, not a 2026 signal.
+
+**CAVEAT, and it is the load-bearing one: the "2026" in that date does nothing.** Verified directly —
+
+```
+P(2026-09-08) == P(2019-09-08) == P(2005-09-08) : True
+```
+
+Stage 1 is a day-of-year base rate over 2000–2019 labels (D-14). It has no year input and no current-state input. **"We ran it for today" is therefore not a claim about today** — it is the doy-251 base rate, which would be byte-identical for any 8 September in any year, past or future. Saying "here is today's output" on stage without that sentence attached would be the exact overclaim the Stage 1 docstring exists to prevent. This is a presentational trap, not a bug.
+
+#### 2. Stage 2 seasonal-analog lookup — **BREAKS.** ❌
+
+```
+build_evidence(table[2000-2019], target_year=2026)
+  -> KeyError: 2026
+     src/models/seasonal_analog_evidence.py:98, in seasonal_analog_distances
+     x_t = (table.loc[target_year, cols].to_numpy() - mu) / sd
+```
+
+**It is not the leakage safeguard.** Line 91 (`pool = pool[pool != target_year]`) is a *no-op* for 2026 — 2026 was never in the pool. The failure is one line later, reading the **target year's own MAM state**. The module structurally assumes the target year is a row *in* the historical table (true for every LOYO fold it was designed and validated for, D-17/D-18), then hard-excludes it from the pool. A genuinely-future year is outside that assumption. **This is a design boundary being hit, not a defect** — the code was never claimed to run outside the historical record, and this check is the first time it was asked to.
+
+Building the 2026 row hits a second, independent obstacle:
+
+```
+build_seasonal_table((2000, 2026))
+  -> FileNotFoundError: data/raw/imd/rain/2026.grd
+```
+
+| what a 2026 row needs | status |
+|---|---|
+| `nino34_mam` 2026 | **available** in cache — 13 weekly points, MAM mean **+0.462** (NOAA CPC, cached through 2026-08-26) |
+| `dmi_mam` 2026 | **available** in cache — 3 monthly points, MAM mean **+0.237** (NOAA PSL) |
+| IMD rainfall 2026 | **not cached.** 2000–2025 `.grd` present (26 files); 2026 absent |
+| `rain_total` JJAS 2026 | **cannot exist yet** — JJAS ends 2026-09-30; **22 days of the season still unobserved** |
+
+So the *predictor* side of 2026 is obtainable; the *outcome* side is not, and cannot be until October.
+
+**Depth of the blockage, measured (scratchpad probe — nothing in `src/` changed).** Handing the code a synthetic 2026 row (predictors from the cached indices, `rain_total=NaN`), the entire Stage 2 path runs: the leakage safeguard holds (`2026 in pool → False`), and the target year's own `rain_total` is needed only for the row to *exist* — it is never read, since only the analog years' observed outcomes reach the output. **The blockage is one missing row, not a structural impossibility.** That is useful for sizing the decision and nothing more; the probe's specific analog years are **provisional and must not be quoted**, because a real extension would draw from a 2000–2025 pool (2020–2025 rainfall *is* cached), not the 2000–2019 pool the probe used.
+
+#### 3. IMD bulletin evidence for 2026-09-08 — bulletin present, **usable evidence absent** ⚠️
+
+No live fetch was made. Read from `data/cache/bulletin_texts.json` (96 bulletins, **14 of them from 2026**, latest **2026-09-03**):
+
+| | |
+|---|---|
+| nearest cached bulletin | **2026-09-03 — 5 days before target**, 20,926 chars |
+| sections whose window covers 2026-09-08 | 2 (2026-08-27 wk 2, 2026-09-03 wk 1) |
+| their trough positions | `mixed`, `not_stated` → `break_favourable = None` for both |
+| `advisory_evidence_for(2026-09-08)` | **`None`** |
+
+**So the honest statement is not "we have no bulletin" — we have a recent one, 5 days old. It is that the extractor cannot resolve a trough position from it.** Across all 28 week-sections of 2026's 14 bulletins: 15 `not_stated`, 8 `mixed`, 5 `near_normal`, and **zero `north` / `south` / `foothills`**. Every week-1 section in 2026 is `not_stated`. This is D-16's 18% coverage figure showing up live rather than in backtest, and it is the system behaving correctly — returning nothing rather than manufacturing a signal.
+
+#### 4. Full decision engine / worked advisory — **NOT RUN**, deliberately
+
+The task gated step 4 on all three checks producing clean output. Step 2 broke, so this pass stopped there rather than routing around it. No 2026 advisory exists and none should be quoted.
+
+#### Why unblocking Stage 2 would still not buy a good demo case
+
+Worth stating so the mechanical blocker isn't mistaken for the whole story. 2018-07-15 was chosen (D-19/D-22) because it is the **only** year in the record where *both* farmer-facing evidence lines appear at once. For 2026:
+
+| | 2018-07-15 | 2026-09-08 |
+|---|---|---|
+| bulletin trough line | ✅ present | ❌ `None` (positions `mixed`/`not_stated`) |
+| seasonal-analog line | ✅ `leaning` → farmer-facing | ❌ probes as `divided` → suppressed by D-19 |
+| farmer-facing evidence lines | **2** | **0** |
+
+A 2026 advisory would carry the base rate and the decision, and **no evidence lines at all**. Fixing the `KeyError` buys a strictly weaker demo than the one already built and rehearsed. The scope answer is the better answer.
+
+#### What this is good for in Q&A
+
+This is a genuinely strong honest-limits answer, and it should be used as one rather than hidden:
+
+> *"Could you run this for today?"* — Stage 1, yes, but it would return the same base rate as any 8 September, because it is a 20-year day-of-year climatology with no year input. Stage 2 would not run at all: it looks up historical seasons whose outcomes are known, and 2026's monsoon has 22 days left, so 2026's outcome does not exist yet. And the most recent IMD bulletin, from five days ago, doesn't state a resolvable trough position — so the system would return no supporting evidence rather than invent some. The demo case is 2018 because that is a season we can check ourselves against.
+
+#### Open — for Sidh, not an autofix
+
+1. Whether `seasonal_analog_distances` should accept a target year outside the table at all (pass the target's state explicitly rather than by index lookup). Cheap, but it changes a module whose current shape is what makes the leakage safeguard auditable in one place. **Not done.**
+2. Whether to extend the label/analog pool from 2000–2019 to **2000–2025** — rainfall for 2020–2025 is already cached, so this is mostly compute. It would change D-14/D-17/D-18 numbers and every downstream figure, and would need the full LOYO protocol re-run (CLAUDE.md Rule 2). **Not started, and should not be started casually before the presentation.**
+
+---
+
+---
+
+### D-24: GKMS district/block AAB recon — **SOP claim VERIFIED, retrieval path DEAD (CAPTCHA), and the field itself is absent from the open substitute.** Recon only.
+
+Same class of investigation as D-15, and the same failure modes applied. **No code in `src/`, no schema, nothing built.** All probes run live 2026-09-08; throwaway scratchpad only.
+
+**Verdict in one line: the district/block AAB path is dead for automated retrieval, and the 6–12 day category field the premise rests on does not appear in the one open archive that exists.**
+
+#### 0. The SOP claim — **verified verbatim, at source, in two independent mirrors** ✅
+
+`agromet.imd.gov.in/current_news/download/SOP_GKMS.pdf` → real PDF, 1,208,487 B, 27 pp, `MoES/IMD/AASD/SOP/01(2020)/02`, author `ERFS`. Quoting the SOP directly:
+
+> "Category rainfall forecast for the outlook of succeeding week (i.e. 6th to 12th days) to be included in bulletin. Categories are Above normal (≥20%), Normal (-19% to +19%) and below normal (≤-20%) **applicable at Met Sub-division scale**."
+
+- The field exists, at the stated 6–12 day lead. ✅
+- The guessed third category is right: **Below normal (≤-20%)**. ✅
+- Bulletins are issued by AMFU/DAMU **every Tuesday and Friday**. The sample AAB is Annexure-4 — which is an **embedded image** (36 chars of text layer), so the SOP does not supply a machine-readable format spec.
+
+> ⚠️ **The summary I was given omitted the load-bearing qualifier.** The SOP says this field is *"applicable at Met Sub-division scale"* — **IMD's own document scopes the 6–12 day category to sub-division scale, even though it is printed inside a district/block bulletin.** India has 36 met subdivisions. So the field, if we could get it, would be **not hyperlocal by IMD's own definition** — the same granularity problem D-15/D-16 already hit, arriving through a new door. This alone caps what the path could ever have been worth.
+
+**Cross-verified.** The mausam mirror carries byte-different but textually identical content (1,066,085 B, 26 pp) — same sentence, same qualifier. Two independent hosts agree.
+
+> 🔁 **A D-15 failure mode nearly repeated, and was caught by re-testing.** My first fetch of the mausam mirror returned `curl exit=28 — Could not connect after 21s`, which I nearly logged as a dead mirror. The host was simply down; on retry it served a 1.07 MB PDF. **A connection timeout is not a 404 and must never be reported as one.** D-15's rule (verify before declaring dead) now has a transport-layer sibling.
+
+#### 1. ACCESSIBILITY — **FAILS. Not retrievable without a CAPTCHA on every single request.** ❌
+
+**`agromet.imd.gov.in` — gated login portal, no self-registration.**
+`GET /` **redirects** to `/index.php/login/login_form`. The form is username + password. Reading the page's own markup: **no "Register" / "Sign up" / "New user" link exists** — the only account affordance is "Forgot". This is the AMFU/DAMU staff portal for *uploading* bulletins, not a public download site. Static files under `/current_news/download/` are public (that is how the SOP came down), but the application is closed. **Registration is not open self-registration; there is no visible public route to an account at all.**
+
+**`imdagrimet.gov.in` — reachable, but every bulletin download is CAPTCHA-gated.**
+
+Two separate gates, which must not be conflated:
+
+| Gate | What it is | Verdict |
+|---|---|---|
+| Bare `GET AGDistrictBulletin.php` → HTTP **200**, body `You are not Authorised....` (26 bytes) | a **Referer check**, not auth — no cookie is ever set; sending `Referer:` yields the full 49 KB page | not a real barrier |
+| The download form itself | `<img src="captcha/captcha.php">` + required `<input name="captcha">` | **hard barrier** |
+
+> ⚠️ **Exactly the D-15 trap, hit again and caught.** `You are not Authorised....` is served with **HTTP 200**. A status-code-only reachability check reports all three bulletin pages as live. They are not.
+
+**CAPTCHA is enforced server-side** — verified by POSTing the complete form (real `token`, real `ReqCheck`, state=10 Madhya Pradesh, district=1044 Bhopal, lang=English) with an empty captcha: the response is the form page again (47,890 B of HTML, `<!DOCTYPE`), **not a PDF**. All three views are gated identically:
+
+| Page | CAPTCHA | Date selector |
+|---|---|---|
+| `AGDistrictBulletin.php` | ✅ present | **none** |
+| `AGStateAasBulletinView.php` | ✅ present | **none** |
+| `AGNationalAasBulletinView.php` | ✅ present | **none** |
+
+I do not solve CAPTCHAs, so **systematic retrieval of district/block AAB is unavailable to this project by any legitimate automated route.** Manual, one-at-a-time download by a human remains possible.
+
+**Endpoints read from the page's own JS (never constructed):** `AGStateActiveDistrictSelect.php` (POST `state_code`), `AGLangSelect.php` (GET), `AGFileSelect.php` (POST `select_backup`). These are un-gated and were queried directly to characterise the form without touching the CAPTCHA:
+
+- state list = **37 states/UTs**; `state_code=10` returns **~50 real MP districts** (Bhopal `1044`, Indore `1031`, …)
+- language = `1 English`, `2 Regional`
+- "Searchability" = `1 Current`, `2 Archive` — **an archive concept exists**, but there is **no date input anywhere on the page**, so even a human cannot request a *specific past date*
+- `select_backup`'s `onchange="get_dist_bu()"` calls a function **that is not defined anywhere on the page** — a broken handler in IMD's own markup
+
+**Q1 fails. Per the stopping rule, the district/block AAB path stops here.** What follows is the adjacent open archive found while checking Q1, carried through because it was cheap and it answers the decision this recon was actually for.
+
+#### 2. ARCHIVE DEPTH — of the *open substitute*, not of AAB
+
+`imdagrimet.gov.in`'s own homepage links out to **CRIDA**: `cropweatheroutlook.in/crida/amis/contingencyPlan/NAAS.jsp` — "NAAS Bulletins based on ERFS". It is a frameset; its nav frame `leftslider1.jsp` **is the listing page** (D-15 method: find the page that serves them, never probe dates). **No login, no CAPTCHA, no Referer gate.**
+
+**514 PDF hrefs, 509 unique, 507 date-parsed** (2 unparsed, both Sept 2019 — filenames contain a stray space):
+
+| Year | 2012 | 2013 | 2014 | 2015 | 2016 | 2017 | 2018 | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| all | 18 | **0** | 13 | 19 | 18 | 27 | 47 | 43 | 52 | 52 | 52 | 49 | 33 | 49 | 35 |
+| **JJAS** | **18** | **0** | **11** | **17** | **16** | **18** | **16** | **16** | **17** | **17** | **18** | **17** | **14** | **16** | **14** |
+
+**13 monsoon seasons (2012, 2014–2026); 223 JJAS bulletins.** Weekly, ~52/yr from 2018. That is **more than twice D-15's ERF depth** (6 seasons / 96 JJAS).
+
+> ⚠️ **Self-caught measurement error.** My first date parser handled only full month names and reported **2020 JJAS = 0** — which would have supported a false "2020 is missing" claim. The 2020/2021 files use `NAAS_04-Sep-2020.pdf` (underscore + abbreviated month). Corrected parser: 2020 JJAS = 17. **The gap was mine, not the archive's** — the same class of error as D-15's `94 → 96` correction.
+
+#### 3. FIELD CONSISTENCY — **the SOP's 6–12 day field is not in this product at all** ❌
+
+**Downloaded 14 real bulletins, one per season** (deterministic pick: first JJAS bulletin on/after 15 July). **14/14 fetched, all verified `%PDF-`, 3–27 pp. Text layer: 14/14 (100%), no OCR needed.**
+
+| Measure | n=14 | |
+|---|---|---|
+| **`"6th to 12th day"` framing** | **0/14** | **0.0%** |
+| **`"succeeding week"`** | **0/14** | **0.0%** |
+| `"Realized Rainfall"` header | 13/14 | 92.9% |
+| `"forecast maps"` header | 12/14 | 85.7% |
+| Week 1 / Week 2 sections | 10/14 | 71.4% |
+
+**The field this entire recon was premised on appears in zero bulletins.** NAAS is not the district AAB — it is the **same Week-1 / Week-2 ERFS product D-15 already characterised**, published nationally by CRIDA. Its structure: *realized* rainfall for the past two weeks (subdivision-scale prose), then a Week-1/Week-2 forecast, with the quantitative forecast delivered as **maps** — images, exactly as D-15 found for ERPAS.
+
+**Granularity of the text forecast, measured at D-15's sentence-level standard.** 93 rainfall-forecast sentences carrying a category, across the 14 bulletins:
+
+| | count | share |
+|---|---|---|
+| names a real IMD **met subdivision** (E. MP, Chhattisgarh, Vidarbha, Marathwada, …) | 32 | **34.4%** |
+| leans on a **macro-region** ("Central India", "East India", "Indo-Gangetic plains") | 11 | 11.8% |
+| hedged **"⟨many/some/most⟩ parts of"** | 5 | 5.4% |
+
+**Not one sentence names a district or a block.** Representative, 2026-07-20 Week 1:
+
+> "Rainfall is likely to be above normal over many parts of East India… However, it is likely to be **below normal over many parts of West India, South India and some parts of Madhya Pradesh**…"
+
+*"Some parts of Madhya Pradesh"* is not resolvable to a subdivision, let alone a block. This is D-16's "Central India proxy captures only 10 of 18 MCZ subdivisions" problem, one step **worse**.
+
+**What was NOT measured, and must not be claimed either way:** the actual district/block AAB bulletins were never obtained, so the **329-AMFU/DAMU cross-unit variation question is UNANSWERED**, not answered negatively. It is untestable without CAPTCHA-gated manual collection.
+
+#### What this means for Stage 1
+
+**Nothing here unblocks Stage 1, and nothing here should change the build.**
+
+- **District/block AAB**: not automatable. Even if collected by hand, IMD's own SOP scopes the field to **Met Sub-division scale** — so it would not deliver block-level anything.
+- **NAAS (open, 13 seasons)**: real and deep, but it is ERFS Week-1/Week-2 at subdivision-to-macro-region granularity — **coarser than the 0.25° MCZ rainfall already in the pipeline**, and it carries no 6–12 day category field. It is a *lower*-resolution restatement of what D-15 already examined and D-16 already extracted a trough signal from.
+- **The honest framing stands, and is now evidenced rather than asserted:** *we consume IMD's operational products and cite IMD's own published skill; we do not independently validate them, and we do not out-forecast IMD.* Consistent with CLAUDE.md's positioning line.
+- **Q&A use:** "IMD's own SOP puts the district bulletin's 6–12 day rainfall category at *sub-division* scale — 36 units for the whole country. That is exactly the gap we work in: nobody is issuing a block-scale *probability*, and the last-mile economic decision layer is what we add."
+
+#### Recurring-discipline scorecard for this pass
+Four D-15 failure modes were live in this investigation; all four were caught:
+1. **HTTP 200 + refusal body** (`You are not Authorised....`) — caught by reading bodies, never status codes.
+2. **Connection timeout misread as a dead link** (mausam mirror) — caught by re-testing when the host recovered.
+3. **Filenames/params guessed** — avoided: every endpoint and every PDF URL was read from the serving page's markup or JS.
+4. **A parser gap reported as a data gap** (2020 JJAS = 0) — caught and corrected to 17.
+
+#### Open
+- Nothing to build. **This path is closed**; do not spend further recon rounds on it.
+- If a human wants the AAB format as a pitch asset, one bulletin can be downloaded manually through the CAPTCHA form. That is a *presentation* artefact, not a data source.
+
+---
+
+### D-25: KALP / SANKALP recon — **REAL, OPEN, UNGATED, AND GENUINELY BLOCK-DIFFERENTIATED.** The strongest external-data finding in this project so far. Also: a Debunked-list correction, and one broken control.
+
+Same three-question treatment as D-24, same failure modes guarded. **No code in `src/`, no schema, nothing built.** All probes live 2026-09-08; throwaway scratchpad only.
+
+**Verdict in one line: this is a genuine positive.** Both platforms are real, need no login and no CAPTCHA, and serve values that genuinely differ between neighbouring blocks. Two hard limits, both measured, neither fatal: the KALP forecast grid is **0.125° (~13 km), not village-scale**, and it retains only **5 rolling days**. But SANKALP carries **30 years of block-level JJAS dry-spell statistics**, which is directly on this project's subject.
+
+> 🔴 **Correction to RESEARCH.md § Debunked, required.** That table lists `imdgeospatial.imd.gov.in` alongside `api.imd.gov.in` as *"Claimed by three separate AI research passes… Never independently confirmed to exist. Do not build against it."* **The host is real and serving.** It resolves to `103.215.208.101` and returns a valid page reproducibly. The Debunked entry should be **split**, not deleted: the *`api.imd.gov.in` REST API with IP-whitelisting* remains unconfirmed and still must not be built against, but `imdgeospatial.imd.gov.in` is a real IMD landing page and is now verified. Guarding against fabrication cuts both ways — a stale "debunked" flag can hide a real source, and this one nearly did.
+
+#### 1. ACCESSIBILITY — **PASSES. No login, no CAPTCHA, no Referer gate.** ✅
+
+`imdgeospatial.imd.gov.in/agromet.html` (3,760 B, title *"KALP & SANKALP Platform"*) is a two-card launcher and nothing more — it holds no data. **URLs taken from its own markup, not constructed:**
+
+| | Link from the page | What it is |
+|---|---|---|
+| **KALP** | `https://webgis.imd.gov.in/agro/` | *"GovAgro Dashboard"*, 491 KB, Leaflet map + Django backend |
+| **SANKALP** | `https://mausamsankalp.imd.gov.in/` | *"Mausam SANKALP"*, 252 KB, Flask + Plotly |
+
+Acronyms, from IMD's own copy: KALP = *Location-specific Weather Prediction based Krishi Advisory*; SANKALP = *Systematic Agrometeorological aNalytics, Knowledge and Advisory enabLing Platform*.
+
+**Neither is gated.** `captcha` occurrences: 0 on both. `type="password"` / login form: 0 on both. This is a categorical difference from D-24's GKMS portals (`agromet.imd.gov.in` = login wall; `imdagrimet.gov.in` = CAPTCHA on every download). Both hosts sit on `103.215.208.x`, a different netblock from the older `14.139.247.x` estate.
+
+**Real endpoints, read from each page's own JS (never guessed).** KALP exposes 33 unique `fetch()` targets under `/agro/`, including a full administrative cascade and, critically, a forecast endpoint:
+
+```
+/agro/fetch_options/?type=gpcodeState
+/agro/fetch_options/?type=gpcodeDistrict&parent_value=<state>
+/agro/fetch_options/?type=gpcodeBlock&parent_value=<district>
+/agro/fetch_options/?type=gpcodeGP&parent_value=<block>      <- gram panchayat
+/agro/get_mme_data/?lat_gfs=&lon_gfs=&date=&resolution=      <- the actual forecast
+/agro/get_exposure_color/?lat=&lon=&day=
+```
+
+Plus per-crop threshold/disease endpoints for wheat, paddy, **soybean**, maize, chickpea, mustard, barley, potato, onion, blackgram, and livestock/poultry thresholds. SANKALP exposes `/getstate_district`, `/getblock`, `/crophistory`, `/rfdry`, `/observed`, `/nowcast`, `/shortrange`, `/mediumrange`, `/agri_adv`.
+
+> Two self-caught guessing errors, both fixed by reading the source: I first queried `parent_value=MADHYA PRADESH` and got `[]` — the API returns `"Madhya Pradesh"`, and its own casing is authoritative. And my regex read SANKALP's period option as `ONDo` because the real option is `<option selected value="JJASo">` with `selected` *before* `value`. Both times the page, not my assumption, had the answer.
+
+#### 2. RESOLUTION — **verified by measurement, not quoted.** Genuinely differentiated; **0.125°, not village-scale.**
+
+**The cascade is real at gram-panchayat depth.** Block *Berasia* (Bhopal, MP) returns **126 gram panchayats**, each with its own `lat`/`lon` to 10 dp and a `gpcode`.
+
+**Test A — do neighbouring gram panchayats get different forecasts?** 12 GPs spread across the block (43 km E–W × 48 km N–S), full `apcp`/`rh`/`ghi` arrays hashed:
+
+**9 distinct forecasts among 12 gram panchayats inside a single block.** Values genuinely differ (`apcp[1:5]` ranging `[0.4,1.0,0.6,1.8]` … `[0.1,0.8,1.4,1.9]`).
+
+**This is NOT the D-24 trap.** It is not one district or subdivision number relabeled with a village name — a district-scoped value would return one identical array for all 126 GPs. It does not.
+
+**Test B — what is the actual grid?** A 0.02° transect, walking longitude at fixed latitude and recording where the forecast signature changes:
+
+```
+change longitudes: 77.20, 77.32, 77.44, 77.58   spacing 0.12, 0.12, 0.14
+change latitudes : 23.44, 23.58, 23.70, 23.82   spacing 0.14, 0.12, 0.12
+```
+
+**~0.12° in both axes.** And the server confirms it in its own table names — `mmem_2026090300_3hr_0p125` — where **`0p125` = 0.125°**, with the query parameters named `lat_gfs`/`lon_gfs`. So: a **GFS-derived 0.125° multi-model-ensemble-mean grid, ~13.9 km**. Measured value and the server's own label agree.
+
+**Test C — the honest ceiling.** Full census of *all 126* Berasia gram panchayats:
+
+| | |
+|---|---|
+| gram panchayats queried | **126** |
+| **distinct forecasts returned** | **14** |
+| mean GPs sharing one forecast | **9.0** |
+| largest identical group | **18 GPs** |
+| GPs with a unique forecast | 2 |
+
+**So the correct characterisation is: block-differentiated yes, village-resolved no.** ~9 villages share each value. `resolution=` in the API is **temporal** (`['3hr','6hr','1hr']`), not spatial — do not misread it.
+
+This is the same ~12–13 km class as IMDAA/IndiaWeatherBench (0.12°) that this project already uses, and it corroborates RESEARCH.md's existing Debunked line that Mausam Gram is *"currently 12km; 1km is a future goal."* **KALP does not beat the resolution we already have.**
+
+**SANKALP is block-differentiated too, and independently so.** `/crophistory` for Rice/Kharif, same district, two blocks:
+
+| Block | weekly Rainfall, first 4 weeks |
+|---|---|
+| Berasia | 21.7, 21.0, 27.7, 3.3 |
+| Phanda | 6.5, 2.6, 71.9, 3.0 |
+
+Different across blocks *and* across districts. Real per-block values.
+
+#### 3. HISTORICAL DEPTH — **a split answer, and the good half is genuinely good**
+
+**KALP forecast: 5 rolling days. No archive.** The server volunteers its own retention in the 404 body:
+
+```
+"available_tables": ["mmem_2026090300_3hr_0p125", ..., "mmem_2026090700_3hr_0p125"]   (5)
+1hr: 5 tables.   6hr: 0 tables.
+```
+
+Dates on/after 2026-09-03 return 200; 2026-09-02 and earlier all 404. Future dates return 200 but re-serve the newest table ("found for or before"). **Launched mid-Jan 2026, retains 5 days. No backtest is possible against KALP — same honest split as the GKMS/NAAS path: usable live, unusable historically.**
+
+**SANKALP `/rfdry`: 30 years, block-level, and directly on this project's subject.** ✅ For State/District/Block + period **JJAS**, it returns four Plotly series over **1995–2024 (n=30)**:
+
+- **Consecutive Dry Days ≥ 7 days** (count per year)
+- **Consecutive Dry Days ≥ 14 days**
+- **Consecutive Dry Days ≥ 21 days**
+- **Consecutive Wet Days**
+
+Genuinely per-block (Berasia vs Phanda long-term means: ≥7d **2.53 vs 2.73**; ≥14d **0.47 vs 0.60**; ≥21d **0.13 vs 0.20**; wet **6.47 vs 4.80**), with per-year values that differ year by year and block by block. **This is a 30-year block-scale dry-spell climatology — conceptually the closest external product to the Rajeevan break statistics this project computes at MCZ scale.**
+
+> ⚠️ **But `/crophistory`'s year selector is broken, and I verified it rather than trusting the dropdown.** It offers **1995–2023**, which looks like deep per-year data. Querying 1995, 2000, 2005, 2010, 2015, 2019 and 2023 while varying *only* `cropyear` returns **byte-identical output every time — 1 distinct signature across 7 years.** The values are almost certainly long-period weekly normals, and the year control does nothing. **Anyone reading that dropdown would reasonably conclude there are 29 years of per-year crop-week data behind it. There are not.** This is exactly the "field exists in the UI, isn't what it appears" failure that D-24's SOP qualifier was — caught here only because the dropdown was tested rather than quoted.
+
+#### What Stage 1 could actually consume, and at what granularity and lead
+
+Stated plainly, positive and negative together:
+
+| Source | Granularity | Lead / span | Gated? | Verdict |
+|---|---|---|---|---|
+| KALP `get_mme_data` | **0.125° (~13 km)**, served per-GP | ~5 days forward, 3hr/1hr | **no** | real, live, **no archive** |
+| KALP crop thresholds | **state** + phenological stage | n/a | no | state-scoped — *not* block |
+| SANKALP `/rfdry` JJAS | **block** | **1995–2024, 30 yr** | **no** | **the genuine find** |
+| SANKALP `/crophistory` | block | **year selector non-functional** | no | normals only |
+
+- **Nothing here replaces Stage 1.** KALP is a 5-day deterministic-ensemble weather feed at the same ~12 km class the pipeline already has; it is not a sub-seasonal active/break probability, which is what D-14 failed to find and what remains unclaimed.
+- **`/rfdry` is worth a real look after the hackathon**, as a *block-scale validation reference* for the break-spell work — 30 JJAS seasons of ≥7/≥14/≥21-day dry-spell counts per block is the right variable at the right scale. **Unverified:** SANKALP's underlying source is not stated on the page; if it is derived from the same IMD 0.25° gridded rainfall this project already ingests, it is a re-presentation rather than independent information. **Do not assume independence — check the source before treating it as corroboration.**
+- **The positioning line strengthens, and is now measured:** IMD's own newest hyperlocal platform resolves to **~13 km with ~9 villages sharing each value**, and offers no sub-seasonal regime probability. Block-scale active/break *probability* plus the economic decision layer remains unclaimed. That is CLAUDE.md's competitive-landscape claim, now with numbers behind it instead of adjectives.
+
+#### Q&A use
+> *"Isn't IMD already doing hyperlocal with KALP/SANKALP?"* — They launched it in January and it's genuinely good: open, no login, and it really does vary between neighbouring blocks. We measured the grid: 0.125°, about 13 km, so roughly nine villages share each value — and it keeps five days of forecasts, no archive. It's a weather feed, not a two-to-four week active/break probability with an economic decision attached. That gap is what we build in, and we consume their products rather than competing with them.
+
+#### Scope actually covered, and what was not
+Verified: both landing pages, both apps, the full KALP cascade, 3 KALP endpoints under load (126+ calls), 2 blocks × 2 districts on SANKALP, KALP retention across 22 date probes, SANKALP year-invariance across 7 years. **Not exhaustively tested:** SANKALP `/observed`, `/nowcast`, `/shortrange`, `/mediumrange`, `/rfinst`, `/tas/*`, `/rh/*`, `/ws/*`; KALP's per-crop threshold payloads (which may bear on the **open ICAR sowing-threshold question, D-20** — `get_soybean_threshold_data` exists and is state+stage scoped; worth one focused check). Block differentiation was measured in **one district**; it should not be assumed uniform nationally.
+
+#### Open
+1. **RESEARCH.md § Debunked must be split** — `imdgeospatial.imd.gov.in` is confirmed real; the `api.imd.gov.in` whitelisted REST API is still unconfirmed. Do not leave a verified host under a "does not exist" heading.
+2. `/rfdry` provenance — is it independent of IMD 0.25° gridded rainfall? Unanswered.
+3. `get_soybean_threshold_data` vs the contested ICAR threshold (D-20) — one focused check, not done here.
+
+#### D-25 ADDENDUM (2026-09-08) — two follow-up checks. **Both resolve negative. `/rfdry` is closed; the soybean thresholds do NOT resolve D-20.**
+
+Recon only, no build. Both questions were left open in D-25 and are now answered at source.
+
+##### Check 1 — `/rfdry` source independence: **NOT independent. Closed as a validation source.** ❌
+
+IMD states this itself, on `mausamsankalp.imd.gov.in/disclaimer`. Quoting verbatim:
+
+> "The outputs are generated using **IMD's gridded datasets**, real-time observations, historical climatology, forecasts from numerical weather prediction models, and predefined crop–weather thresholds derived from crop weather calendars."
+
+> "**Most datasets used in the platform are gridded products representing spatial averages over defined grid resolutions.**"
+
+> "Relative Humidity (RH) and Wind Speed datasets used for historical analysis are primarily derived from **AgERA reanalysis** data."
+
+> "The datasets and derived outputs… **shall not be used as proxies for station-level observations**…"
+
+**What is stated:** SANKALP's historical analysis is built on **IMD gridded products**, explicitly spatial averages, explicitly *not* station observations. Only RH and Wind Speed are attributed to AgERA reanalysis — **rainfall is not**, which leaves it in the "IMD's gridded datasets" bucket. So the Consecutive Dry/Wet Days series is **re-derived from the same family of gridded IMD rainfall this project already ingests via imdlib**, not from an independently maintained station/AWS network.
+
+**What is NOT stated, and I will not infer it:** IMD never names the specific rainfall product or its grid resolution anywhere on the platform. The disclaimer says "defined grid resolutions" without defining them. So *"it is the 0.25° product imdlib serves"* is **plausible but unstated** — the honest label is: same family, same institution, gridded not station; exact product **unstated**.
+
+**Coverage of the search, so "unstated" is a finding and not a shrug:** SANKALP's nav exposes no `/about`, `/help`, `/methodology` or `/source` route (routes are `/rf`, `/rfdry`, `/rfinst`, `/observed`, `/nowcast`, `/shortrange`, `/mediumrange`, `/crophistory`, `/cropcurrent`, `/agri_adv`, `/tas/*`, `/rh/*`, `/ws/*`, `/query`, `/disclaimer`). The `/rfdry` page and its POST response carry no source note. **`/disclaimer` is the only provenance statement the platform makes**, and it is quoted in full above.
+
+**Consequence, per the standing instruction: this closes it.** `/rfdry` is a *re-presentation* of data already in hand at block aggregation, not independent corroboration. It cannot serve as an independent validation reference for the break-spell work, because agreeing with it would only show that two derivations of the same underlying gridded rainfall agree. **Do not spend further recon rounds on it.** D-25's "worth a real look after the hackathon" line is hereby withdrawn.
+
+> The one thing `/rfdry` could still honestly be used for is a **block-scale presentation cross-check** — confirming our MCZ-scale dry-spell counts are not wildly out of family with IMD's own block aggregation. That is a sanity check, not validation, and it must never be reported as independent agreement. If it is ever wanted, the definitive test is cheap: recompute consecutive-dry-day counts for Berasia/Phanda from the cached 0.25° imdlib rainfall and compare against the 1995–2024 series. **Not run — that would be analysis, not recon.**
+
+##### Check 2 — `get_soybean_threshold_data`: **real and well-built, but it answers a DIFFERENT question and does NOT resolve D-20.** ⚠️
+
+The endpoint works and returns genuinely substantial data — `success: true`, per-state, per-phenological-stage, with impact and recommendation prose. **Madhya Pradesh / Sowing / soybean:**
+
+| field | value |
+|---|---|
+| `daily_rainfall_threshold_mm_day` | **> 30 mm/day** |
+| `three_days_cumulative_rainfall_threshold_mm` | **> 60 mm / 3 days** |
+| `tmin_low_c` / `tmin_high_c` | < 18 °C / > 28 °C |
+| `tmax_c` | > 36 °C |
+| `rh_min` / `wind_max_km_h` | > 90 % / > 20 km/h |
+| `impact_rainfall_high` | *"Excess rainfall causes seed rot and soil crusting"* |
+| `recommendation_rainfall_high` | *"Ensure proper drainage and **avoid sowing in waterlogged soil**. Sow the seeds in raised beds"* |
+
+It is **not** a generic placeholder table. Thresholds are genuinely state-specific — **5 distinct tuples across 5 states** (daily / 3-day / tmin_low / tmax):
+
+| MP | Maharashtra | Rajasthan | Karnataka | Telangana |
+|---|---|---|---|---|
+| 30 / 60 / 18 / 36 | 35 / 60 / 20 / 34 | 30 / 60 / 18 / 38 | 40 / 60 / 20 / 34 | 40 / 60 / 20 / 36 |
+
+— and stage-specific in an agronomically coherent way (MP): Sowing 30/60 → Germination 30/80 → Vegetative 40/120 → Flowering 25/70 → Pod formation 25/70 → **Maturity 10/30** (tolerance collapses as harvest nears, which is correct). `Pod Development` and `Harvesting` return `"No data found"` — stage names must be taken from the API, not invented.
+
+> 🔴 **THE DECISIVE POINT, and the reason a promising function name must not be allowed to stand in for verification: these thresholds point the OPPOSITE WAY to what D-20 needs.**
+>
+> | | D-20's open question | What KALP returns |
+> |---|---|---|
+> | quantity | **minimum** accumulated rain that makes sowing *safe to start* | **maximum** rain above which sowing is *damaged* |
+> | bound | lower / "go" signal | upper / "stop, drain, delay" signal |
+> | contested value | 50–75 mm accumulated (untraced, actively doubted) | >30 mm/day, >60 mm/3-day |
+>
+> KALP's own `recommendation_rainfall_high` — *"avoid sowing in waterlogged soil"* — makes the direction unambiguous. **This is an adverse-weather ceiling, not a sowing trigger.** Substituting it for D-20's missing figure would silently invert the semantics of `sowing_rain_threshold_mm` and produce a decision rule that fires on the wrong side of the distribution. It is a different number for a different purpose that happens to sit in a similarly-named field.
+
+**Provenance, traced with D-20's rigour — and it fails the same test.** KALP's footer contains its own source field:
+
+```html
+<p data-translate="Data Sources: | Contact Us Office of Director General of Meteorology ...">
+```
+
+**The "Data Sources:" label exists and its rendered value is empty.** The visible footer carries only the copyright and a phone number. Searching the full 491 KB page for `ICAR`, `IISR`, `AICRP`, `bulletin`, `citation`, `Reference`: **zero matches** (the single "reference" hit is a CSS class, `.pest-reference-image`). The nearest provenance statement anywhere across either platform is SANKALP's disclaimer phrase *"predefined crop–weather thresholds derived from crop weather calendars"* — which names a **category of artefact, not a citable document**: no institution, no publication, no year.
+
+**Verdict for D-20: NOT RESOLVED. Nothing changes.**
+- `CropEconomics.sowing_rain_threshold_mm` **stays `None`**; `verified` **stays `False`**; the farmer-facing ICAR disclosure **stays in the advisory text**.
+- RESEARCH.md § Contested is **unchanged** — this is not the missing citation, and must not be logged as one. An official platform serving an uncited number is still an uncited number; IMD hosting it raises its credibility, not its traceability.
+- **What it would legitimately support, if ever wanted:** an *excess-rain* guard on the sow branch — "conditions too wet to sow" — attributable to *"IMD KALP platform, state-and-stage-specific crop–weather thresholds (source not stated on the platform)"*. That is a **new, separate parameter**, not a fill-in for the contested one, and it is out of scope for this build.
+
+##### Net effect on D-25
+Both open items from D-25's "Open" list close negative. The entry's headline finding is unchanged and still stands — KALP/SANKALP are real, open, ungated and genuinely block-differentiated at 0.125° — but the two follow-ups that looked most likely to yield something usable **did not**:
+
+| D-25 open item | Status now |
+|---|---|
+| `/rfdry` independent of data in hand? | **No — closed.** Same IMD gridded family, stated by IMD. |
+| `get_soybean_threshold_data` resolves D-20? | **No.** Real and state-specific, but opposite direction and uncited. |
+| RESEARCH.md § Debunked split (`imdgeospatial` is real) | **DONE (2026-09-08).** `imdgeospatial.imd.gov.in` moved to § Verified (Competitive landscape) with KALP/SANKALP detail and a "formerly wrongly listed in § Debunked" note; the Debunked row now names only the `api.imd.gov.in` real-time REST API + IP-whitelisting. Rule added: name the specific host/endpoint, never a category. |
+
+---
+
+### D-26: Stage 4 per-farmer profile layer — LOSS-side only, guard covers every path — **BUILT**
+
+Run: `python -m src.models.run_stage4_profile` · log `artifacts/stage4_profile_example.txt`. New module `src/models/farmer_profile.py`; no existing file changed.
+
+#### What it does, and the line it does not cross
+
+Stage 4's `decide()` compares `E[loss|SOW]` vs `E[loss|WAIT]` over Stage 1's `{active, break, transition}` distribution. This layer lets a farmer's own situation change the **rupee losses** in that comparison. It never touches a probability — Stage 1's `probabilities` / `ci_lower` / `ci_upper` pass into `decide()` untouched, and the module has no code path that reads or constructs them (AST-verified; `probabilities` appears only inside the two immutability-check assertions, never in `adjusted_economics` / `decide_for_profile` / `profile_multipliers`).
+
+#### Field → loss-term mapping (each field moves exactly one side)
+
+| Profile field | Moves | Direction | Why |
+|---|---|---|---|
+| `irrigation` (rainfed / partial / assured) | `L_delay` ×{1.00, 0.80, 0.55} | assured → waiting is cheap | a borewell means a missed natural onset is largely recoverable — the WAIT branch costs that farmer less |
+| `soil` (sandy / loam / clay) | `alpha` ×{1.35, 1.00, 0.70} **and** `L_reseed` ×{1.15, 1.00, 0.90} | clay → a short break hurts less | vertisol holds moisture and buffers a just-sown bed; sandy drains fast. This is the "how a rainfall probability translates to sowing-readiness risk" channel — it changes the **loss** a regime inflicts, not the regime's probability |
+| `risk` (tolerant / neutral / averse) | `L_reseed` ×{0.77, 1.00, 1.30} | averse → effective θ up → WAIT favoured | θ = L_reseed/L_delay is reported, never compared to a probability; "scaling θ" = scaling the loss input and re-running the full expectation, not shifting a threshold |
+| `sowing_status` (pre_sowing / sown) | **which decision applies** | sown → no SOW/WAIT answer | "sow now or wait" is moot once the seed is in the ground. The live decision (protect the standing crop vs hold) is a different action set with different losses, **not modelled**. `decide_for_profile` returns `decision=None` rather than misapplying the pre-sowing model |
+| `growth_stage` | (feeds the post-sowing action set) | — | carried in the schema; only meaningful once `sown`; a `pre_sowing` profile must carry `NOT_APPLICABLE` (enforced in `__post_init__`) |
+
+Reference levels are all **exactly 1.0**, so an all-reference profile reproduces the base `decide()` bit-for-bit (`check_reference_profile_is_identity`: E[sow] 7,692.0, E[wait] 4,888.0 — identical).
+
+#### The D-C guard covers every new path — verified, not assumed
+
+Profile → adjusted `CropEconomics` → **the existing `decide()`**. No second scoring function, so `_expected_loss()` → `_assert_is_expectation()` runs on every profile path unchanged.
+
+- **Full 27-combo grid** (3 irrigation × 3 soil × 3 risk, pre-sowing), run against **both** crops' base economics (soybean and cotton): every combination routes through `decide()`; both loss vectors non-constant in every case; farmer-facing evidence lines identical across all 27.
+- **Collapsed-branch adjustment rejected:** an adjustment that zeros `L_reseed` (SOW vector → `[0,0,0]`) is rejected by `_assert_is_expectation` — *"loss vector is constant across regimes (0.0)"* — exactly as the base case would be.
+- **Zeroed multiplier caught one layer earlier:** `adjusted_economics` asserts `l_reseed > 0 and l_delay > 0 and 0 < alpha < 1` and raises *"fix the multiplier table, do not special-case"* — the guard is defence-in-depth, not the only line.
+- **Stage 1 immutability:** `DecisionResult.probabilities == prior.probabilities` byte-identical across all 27 profiles, both crops.
+- **Reference-profile identity:** all-reference profile reproduces base `decide()` exactly — soybean E[sow] 7,692.0, cotton E[sow] 12,820.0.
+
+#### D-19 boundary intact
+
+AST check on `farmer_profile.py`: imports `advisory_evidence_lines`, calls it, reads **no** raw evidence field (`advisory_evidence`, `seasonal_analog_*`). Evidence lines asserted identical for base / Profile A / Profile B. A profile changes the recommendation and the rupee numbers shown; it never changes which evidence is eligible to display.
+
+#### Worked example — two illustrative profiles, same date, same probabilities, opposite calls
+
+Target `2018-07-15`. **P(active)=0.0767, P(break)=0.0967, P(transition)=0.8267 — identical for both.** Base cases (no profile): soybean WAIT (E[sow] 7,692 vs E[wait] 4,888); cotton WAIT (12,820 vs 8,147).
+
+| | Demo profile A — rainfed black-soil soybean smallholder | Demo profile B — irrigated sandy-plot cotton grower |
+|---|---|---|
+| inputs | soybean · rainfed · clay · risk-tolerant | cotton · assured irrigation · sandy · risk-averse |
+| multipliers | L_reseed ×0.69, L_delay ×1.00, alpha ×0.70 | L_reseed ×1.49, L_delay ×0.55, alpha ×1.35 |
+| effective θ | 1.500 → 1.040 | 1.500 → 4.077 |
+| E[loss\|SOW] | **4,093** | 24,357 |
+| E[loss\|WAIT] | 4,888 | **4,481** |
+| recommendation | **SOW** (margin +795) | **WAIT** (margin −19,876) |
+| robust across envelope | **False** — flips to WAIT at `break_high` (P(break)→0.180) | True |
+
+The split is real and comes **entirely from the loss inputs**: A is rainfed (waiting genuinely costs the full late-sowing penalty) on moisture-retentive black soil (a short break won't kill the stand) and can absorb a reseed; B can irrigate if the rains are late (waiting is cheap), sits on a fast-draining bed (a just-sown crop is exposed), and would feel a reseed badly. **Profile A's SOW is honestly fragile** (`robust=False`) — the demo shows the envelope flipping it, which is the uncertainty propagation doing its job, not a defect.
+
+**Control for "is it just the crop?"** — Profile B's exact fields (assured / sandy / risk-averse) run on *soybean* still give WAIT (E[sow] 14,614 vs E[wait] 2,688). So the flip vs A is driven by the profile fields, not the choice of crop; crop is one more loss lever on top.
+
+Demo profile C (already sown, at germination) → **no SOW/WAIT recommendation**; `applicability = post_sowing_contingency_not_modelled`, with an explicit message that emitting one would misapply the model.
+
+#### Honest limits
+
+- **Multiplier tables are illustrative** — plausible directions and rough magnitudes, **not** calibrated to surveyed farm economics. Same disclosure standard as the D-20 crop-loss thresholds; every `DecisionResult` still carries `uses_unverified_parameters=True`. To make them real: farm-economics survey or ICAR/SAU extension data per agro-climatic zone, recorded here, then flip a `verified` flag.
+- **Post-sowing decision not built** — recognised and declined, not faked. Would need stage-dependent value-at-risk, protection cost, and protection effectiveness, all currently unsourced.
+- **`growth_stage` does nothing inside the modelled (pre-sowing) path — graded stage-sensitivity was scoped out, not merely unimplemented.** The field is read in exactly three places (`grep` confirmed): `__post_init__` coherence validation against `sowing_status`, the `summary()` display line, and the `not_modelled_reason` string. It never reaches `profile_multipliers` / `adjusted_economics` / any loss term. This is deliberate: "pre-sowing" means no crop in the ground and therefore no growth stage to be sensitive to, and stage-dependent value-at-risk belongs entirely to the un-modelled post-sowing action set above. The enum stays in the schema so that action set has a defined place to read it from if it is ever built; today it is inert in every path that produces a number.
+- **No profile personalises the probability** — by design. If a future Stage 1 ever has block-resolved or year-specific skill, that belongs in Stage 1, not smuggled in through a profile field here.
+
+#### Open
+
+- Calibrate the multiplier tables against real farm-economics data (currently illustrative).
+- Model the post-sowing action set, or leave it explicitly out of scope in the pitch.
+- Gate C (D-4) would be the natural source for both the multiplier magnitudes and a sanity check on the two demo profiles' plausibility.
+
+---
+
 ## Handoff notes
 
 *(Append session notes here — what changed, what was decided, what the next agent should know.)*
@@ -1106,3 +1613,10 @@ What exists now (`src/`, first code in the repo):
 Next agent: **do not build Stage 2.** Read D-14 and pick a Phase 1R option first. Three doc/code corrections were made along the way where a file described its own behaviour incorrectly (a stale "no hyperparameter tuning" docstring after inner-fold tuning was added; a cached-fields path that logged "0 MB fetched") — if you touch those modules, keep the docstrings honest, since these files are the evidence trail for a number.
 
 **`src/` layout deviates from AGENTS.md.** AGENTS.md says the modelling agent owns `src/stages/`. Stage 1 was built as `src/models/regime_forecaster.py` with feature construction split into `src/features/` and metrics isolated in `src/eval/` (the latter matches AGENTS.md). Rationale: Stage 1's model, its features, and its evaluation are separable concerns and only one stage exists so far. If Phase 1R proceeds to a real multi-stage build, either rename to `src/stages/` or update AGENTS.md — flagged here rather than silently reorganised. `requirements.txt` and `.gitignore` were added at first commit (README referenced a `requirements.txt` that did not exist); versions are pinned to what produced the D-14 numbers. `data/` is gitignored (~490 MB of acquired IMD GRD + IWB caches); the loaders recreate it.
+
+**Session — Stage 4 per-farmer profile layer (2026-09-08)**
+Two doc tasks + one build.
+- **RESEARCH.md § Debunked split** (per prior instruction): `imdgeospatial.imd.gov.in` is confirmed real (D-25) — moved out of Debunked into § Verified/Competitive-landscape with KALP + SANKALP detail and a "formerly wrongly listed" note. The Debunked row now names only the `api.imd.gov.in` real-time REST API (+ IP-whitelisting), which stays unconfirmed. New standing rule in RESEARCH.md: a debunked entry names the specific host/endpoint, never a category — the category grouping is exactly what almost hid a real source.
+- **D-26 — `src/models/farmer_profile.py`.** Per-farmer inputs (crop, sowing status, growth stage, irrigation, soil, risk preference) that move the **LOSS side only** of Stage 4's expected-loss comparison. No existing file changed. Profile → adjusted `CropEconomics` → the existing `decide()`, so `_assert_is_expectation()` covers every new path (verified over a 27-combo grid + explicit rejection tests). Stage 1's probabilities are structurally unreachable from the module (AST-checked). Advisory evidence still flows only through `advisory_evidence_lines(prior)`. Worked example: two illustrative demo profiles, same date + same regime probabilities, opposite recommendations (A rainfed/clay/tolerant → SOW but `robust=False`; B irrigated/sandy/averse → WAIT `robust=True`), both expected losses shown term-by-term. `artifacts/stage4_profile_example.txt`.
+  - Multiplier tables are **illustrative**, not calibrated to farm-economics data — same standard as the D-20 crop-loss thresholds. Post-sowing action set (protect vs hold) is recognised and declined, not modelled.
+  - Next agent: if you calibrate the multiplier tables, Gate C (D-4) is the natural source. Do NOT let any profile field reach into Stage 1's probabilities — if year-specific skill ever exists it belongs in Stage 1.
