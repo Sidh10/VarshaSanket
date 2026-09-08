@@ -6,15 +6,21 @@ Two screens, one server, one cached case -- SAME discipline throughout:
               REAL decision engine: every slider move hits
               `/api/decide?l_reseed=<n>`, which calls `build_payload()` ->
               `decide()` -> `_expected_loss()`. No lookup table.
-  "/profiles" the per-farmer profile screen (D-26/D-27). Selecting one of
-              four illustrative demo profiles hits
-              `/api/profile_decide?profile=<A|B|C|D>`, which calls
-              `build_profile_payload()` -> `decide_for_profile()` -> the SAME
-              `decide()`. Risk preference lives ONLY inside the selected
-              profile card here -- there is deliberately no floating
-              theta/l_reseed slider on this screen (see profiles.py and
-              DISCUSSION.md D-27 on why re-adding one here would double-count
-              risk that the profile's own multiplier already applied).
+  "/profiles" the per-farmer profile screen (D-26/D-27/D-28). Four preset
+              demo profiles PLUS free selection of every profile field.
+              Both hit `/api/profile_decide` -- `?profile=<A|B|C|D>` for a
+              preset, field parameters for a chosen one -- and both converge on
+              `_payload_for_profile()` -> `decide_for_profile()` -> the SAME
+              `decide()`. One decision path, no second construction route.
+              `/api/profile_options` serves the selector values, generated from
+              `FarmerProfile`'s enums and `CROP_DEFAULTS`, so the page holds no
+              option literals of its own. Risk preference lives ONLY inside the
+              profile here -- there is deliberately no floating theta/l_reseed
+              slider on this screen (see profiles.py and DISCUSSION.md D-27 on
+              why re-adding one would double-count risk that the profile's own
+              multiplier already applied). A combination the schema rejects
+              comes back as a 400 with a plain-language reason, never a
+              traceback.
 
 stdlib only -- no Flask/FastAPI, no new dependency, nothing to fail on demo day.
 Both screens share ONE cached `DemoCase` (2018-07-15, built once at startup,
@@ -32,10 +38,21 @@ import urllib.parse
 
 from src.demo.case import build_case
 from src.demo.payload import build_payload
-from src.demo.profiles import DEMO_PROFILES, build_profile_payload
+from src.demo.profiles import (
+    ProfileValidationError,
+    build_custom_profile_payload,
+    build_profile_payload,
+    demo_preset_summaries,
+    profile_option_values,
+)
 
 PORT = 8765
 _CASE = None  # built once at startup, shared by both screens
+
+# The free-selection fields, in the order the UI shows them. Named here only so
+# a missing parameter can be reported precisely; the VALUES each may take come
+# from `profile_option_values()`, i.e. from the schema (D-28).
+_CUSTOM_FIELDS = ("crop", "sowing_status", "irrigation", "soil", "risk")
 
 
 def _get_case():
@@ -51,9 +68,36 @@ def _payload(l_reseed: float) -> dict:
     return build_payload(case, lr)
 
 
-def _profile_payload(profile_key: str) -> dict:
+def _profile_payload(query: dict[str, list[str]]) -> dict:
+    """One request -> one payload, for EITHER entry point.
+
+    `?profile=<key>`  the four rehearsed presets (unchanged).
+    field parameters  a freely chosen profile.
+
+    Both resolvers live in `src/demo/profiles.py` and converge on
+    `_payload_for_profile` there, so there is no second decision path behind
+    this endpoint. Raises `ProfileValidationError` for anything the schema
+    rejects; the handler turns that into a 400 with the message.
+    """
     case = _get_case()
-    return build_profile_payload(case, profile_key)
+    if "profile" in query:
+        return build_profile_payload(case, query["profile"][0])
+
+    missing = [f for f in _CUSTOM_FIELDS if not query.get(f, [""])[0]]
+    if missing:
+        raise ProfileValidationError(
+            "Choose a value for every field before asking for a recommendation. "
+            f"Still needed: {', '.join(m.replace('_', ' ') for m in missing)}."
+        )
+    return build_custom_profile_payload(
+        case,
+        crop=query["crop"][0],
+        sowing_status=query["sowing_status"][0],
+        irrigation=query["irrigation"][0],
+        soil=query["soil"][0],
+        risk=query["risk"][0],
+        growth_stage=query.get("growth_stage", [""])[0] or None,
+    )
 
 
 PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -232,21 +276,51 @@ PROFILES_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
  .notmodelled{border:1px dashed #999;border-radius:8px;padding:14px;background:#fafafa}
  .notmodelled h3{margin:0 0 8px;color:var(--mut);font-size:15px}
  .hidden{display:none}
+ .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:4px}
+ .field label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);font-weight:600;margin-bottom:3px}
+ .field select{width:100%;padding:7px 8px;font:inherit;font-size:14px;border:1px solid var(--line);border-radius:6px;background:#fff;color:inherit}
+ .field .fhint{font-size:11px;color:var(--mut);margin-top:3px;min-height:14px}
+ .region{border-left:3px solid #888;padding:6px 0 6px 12px;margin:14px 0 2px;font-size:13px}
+ .region b{font-weight:600}
+ .region .why{color:var(--mut);font-size:12px;margin-top:2px}
+ .invalid{border:1px solid #f0c36d;background:#fff8e1;border-radius:8px;padding:12px 14px;color:#7a5b00;font-size:13px}
+ .invalid b{display:block;margin-bottom:3px;color:#8a6100}
 </style></head><body><div class="wrap">
 <h1>VarshaSanket &mdash; per-farmer profile demo</h1>
 <p class="sub" id="casesub">Loading case...</p>
 <p class="sub"><a href="/">&larr; Back to single-case theta-slider demo</a></p>
 
 <div class="card">
- <h2>Choose a demo farmer</h2>
+ <h2>Start from a demo farmer</h2>
  <p class="note" style="margin-top:0">
    Four <b>illustrative demo profiles</b> &mdash; not real registered users; there is no farmer database.
-   Risk preference is a trait of the selected farmer card below, not a separate slider on this screen
+   Clicking one sets the fields below to match it; you can then change any field.
+   Risk preference is a trait of the farmer, not a separate slider on this screen
    (a floating theta slider on top of a per-farmer profile would double-count risk that the profile
    already applies to the loss side &mdash; see DISCUSSION.md D-27). Every profile is scored against the
    SAME 2018-07-15 regime prior as the single-case demo.
  </p>
  <div class="farmers" id="farmers"></div>
+</div>
+
+<div class="card">
+ <h2>Or choose each field</h2>
+ <div class="fields" id="fields"></div>
+ <div class="region">
+   <b>Region: monsoon core zone (single region).</b>
+   <div class="why">Not a selector, and not one that is coming: Stage 1 computes one MCZ-mean base rate
+     (18&ndash;28&deg;N, 66.5&ndash;88&deg;E), so there is no per-district or per-block number underneath
+     this to choose between. Breaking it out further would show spatial variation the pipeline does not
+     produce &mdash; see DISCUSSION.md D-16 and <code>src/delivery/risk_display.py</code>.</div>
+ </div>
+ <p class="note">Every combination these fields can produce is a member of the grid already driven through
+   the decision engine's expectation guard &mdash; the options come from the schema itself
+   (<code>FarmerProfile</code>'s enums and <code>CROP_DEFAULTS</code>), not from this page.</p>
+</div>
+
+<div class="invalid hidden" id="invalidcard">
+ <b>That is not a combination this demo can score</b>
+ <span id="invalidmsg"></span>
 </div>
 
 <div id="result" class="hidden">
@@ -303,31 +377,116 @@ PROFILES_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <script>
 const $=id=>document.getElementById(id);
 const fmt=n=>Math.round(n).toLocaleString('en-IN');
-const PROFILES=[
- {key:'A',crop:'soybean',label:'A \\u2014 rainfed, black soil, risk-tolerant',
-  traits:'soybean \\u00b7 rainfed \\u00b7 clay (black) soil \\u00b7 risk-tolerant \\u00b7 pre-sowing'},
- {key:'B',crop:'cotton',label:'B \\u2014 irrigated, sandy soil, risk-averse',
-  traits:'cotton \\u00b7 assured irrigation \\u00b7 sandy soil \\u00b7 risk-averse \\u00b7 pre-sowing'},
- {key:'C',crop:'soybean',label:'C \\u2014 partial irrigation, black soil, risk-tolerant',
-  traits:'soybean \\u00b7 partial irrigation \\u00b7 clay (black) soil \\u00b7 risk-tolerant \\u00b7 pre-sowing \\u00b7 near-tie call'},
- {key:'D',crop:'soybean',label:'D \\u2014 already sown (germination)',
-  traits:'soybean \\u00b7 partial irrigation \\u00b7 loam soil \\u00b7 neutral risk \\u00b7 SOWN, germination stage'},
+// Everything selectable is served by /api/profile_options, which generates it
+// from FarmerProfile's enums + CROP_DEFAULTS. This page deliberately holds NO
+// option literals and no copy of a preset's fields, so it cannot offer a value
+// the schema does not define (D-28).
+let CONFIG=null;          // {options, presets}
+// The one sowing status that requires a growth stage, taken from the schema
+// (SowingStatus.SOWN.value) rather than written here as a string literal.
+let SOWN=null;
+// The four selectors that always apply, in display order. Growth stage is
+// handled separately -- it is only coherent once sown.
+const FIELDS=[
+ {name:'crop',        title:'Crop'},
+ {name:'sowing_status',title:'Sowing status'},
+ {name:'irrigation',  title:'Irrigation access'},
+ {name:'soil',        title:'Soil type'},
+ {name:'risk',        title:'Risk preference'},
 ];
-let selected=null;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-function renderFarmerCards(){
-  $('farmers').innerHTML=PROFILES.map(p=>
-    '<button class="fcard" id="fc_'+p.key+'" onclick="selectProfile(\\''+p.key+'\\')">'
-    +'<div class="flabel">Demo profile '+p.label+'</div>'
-    +'<div class="ftraits">'+p.traits+'</div>'
-    +'<div class="fdemo">illustrative demo profile, not a real user</div>'
-    +'</button>').join('');
+function renderFields(){
+  const o=CONFIG.options;
+  let html=FIELDS.map(f=>
+    '<div class="field"><label for="sel_'+f.name+'">'+esc(f.title)+'</label>'
+    +'<select id="sel_'+f.name+'" onchange="onFieldChange()">'
+    +o[f.name].map(v=>'<option value="'+esc(v.value)+'">'+esc(v.label)+'</option>').join('')
+    +'</select><div class="fhint" id="hint_'+f.name+'"></div></div>').join('');
+  // Growth stage: rendered but hidden unless sown. Options are the schema's
+  // sown-coherent stages -- the constructor remains the thing that ENFORCES it.
+  html+='<div class="field hidden" id="field_growth_stage">'
+    +'<label for="sel_growth_stage">Growth stage</label>'
+    +'<select id="sel_growth_stage" onchange="onFieldChange()">'
+    +o.growth_stage_when_sown.map(v=>'<option value="'+esc(v.value)+'">'+esc(v.label)+'</option>').join('')
+    +'</select><div class="fhint" id="hint_growth_stage"></div></div>';
+  $('fields').innerHTML=html;
 }
 
-async function selectProfile(key){
-  selected=key;
-  for(const p of PROFILES){ $('fc_'+p.key).classList.toggle('sel', p.key===key); }
-  const r=await fetch('/api/profile_decide?profile='+key); const d=await r.json();
+function renderFarmerCards(){
+  $('farmers').innerHTML=CONFIG.presets.map(p=>{
+    const traits=[p.crop,p.irrigation+' irrigation',p.soil+' soil',p.risk.replace('_',' '),
+                  p.sowing_status.replace('_',' ')
+                  +(p.sowing_status===SOWN?' ('+p.growth_stage+')':'')].join(' \\u00b7 ');
+    return '<button class="fcard" id="fc_'+p.key+'" onclick="applyPreset(\\''+p.key+'\\')">'
+      +'<div class="flabel">'+esc(p.label)+'</div>'
+      +'<div class="ftraits">'+esc(traits)+'</div>'
+      +'<div class="fdemo">illustrative demo profile, not a real user</div>'
+      +'</button>';
+  }).join('');
+}
+
+// A preset does NOT take its own route to the decision engine: it sets the
+// selectors from the preset's own field values and then submits like any other
+// selection. Same endpoint, same resolver, same decide_for_profile().
+function applyPreset(key){
+  const p=CONFIG.presets.find(x=>x.key===key);
+  for(const f of FIELDS){ $('sel_'+f.name).value=p[f.name]; }
+  if(p.sowing_status===SOWN){ $('sel_growth_stage').value=p.growth_stage; }
+  for(const x of CONFIG.presets){ $('fc_'+x.key).classList.toggle('sel', x.key===key); }
+  onFieldChange();
+}
+
+function currentFields(){
+  const out={};
+  for(const f of FIELDS){ out[f.name]=$('sel_'+f.name).value; }
+  // Growth stage is sent ONLY when sown. Pre-sowing sends nothing, so the
+  // profile takes the schema default (NOT_APPLICABLE) -- the one value that is
+  // coherent there, per FarmerProfile.__post_init__ (D-26).
+  if(out.sowing_status===SOWN){ out.growth_stage=$('sel_growth_stage').value; }
+  return out;
+}
+
+function hintFor(field,value){
+  const list=CONFIG.options[field]||[];
+  const hit=list.find(v=>v.value===value);
+  return hit?hit.hint:'';
+}
+
+// Growth stage is shown for exactly the state in which it is coherent. This
+// MIRRORS the constructor's rule; it does not replace it -- a request that gets
+// past the UI is still rejected by FarmerProfile and rendered as a validation
+// message, which the sweep in run_profiles_demo.py exercises directly.
+function onFieldChange(){
+  const f=currentFields();
+  $('field_growth_stage').classList.toggle('hidden', f.sowing_status!==SOWN);
+  for(const fd of FIELDS){ $('hint_'+fd.name).textContent=hintFor(fd.name,f[fd.name]); }
+  if(f.sowing_status===SOWN){
+    $('hint_growth_stage').textContent=hintFor('growth_stage',$('sel_growth_stage').value);
+  }
+  // Any hand-edit that no longer matches a preset clears the card highlight.
+  const match=CONFIG.presets.find(p=>FIELDS.every(fd=>p[fd.name]===f[fd.name])
+    && (f.sowing_status!==SOWN || p.growth_stage===f.growth_stage));
+  for(const p of CONFIG.presets){ $('fc_'+p.key).classList.toggle('sel', !!match && match.key===p.key); }
+  submit();
+}
+
+async function submit(){
+  const q=new URLSearchParams(currentFields()).toString();
+  const r=await fetch('/api/profile_decide?'+q);
+  const d=await r.json();
+  if(!r.ok){
+    // A combination the schema rejects: show the plain-language reason the
+    // server sent, never a stack trace, and leave the last good result up.
+    $('invalidcard').classList.remove('hidden');
+    $('invalidmsg').textContent=d.error||'This combination could not be scored.';
+    return;
+  }
+  $('invalidcard').classList.add('hidden');
+  render(d);
+}
+
+function render(d){
   $('result').classList.remove('hidden');
 
   // base rate (same panel regardless of applicability)
@@ -383,10 +542,13 @@ async function selectProfile(key){
 }
 
 async function init(){
+  const r=await fetch('/api/profile_options');
+  CONFIG=await r.json();
+  SOWN=CONFIG.options.sowing_status_requiring_stage;
+  renderFields();
   renderFarmerCards();
-  const r=await fetch('/api/profile_decide?profile=A'); const d=await r.json();
-  $('casesub').textContent=d.base_rate.probabilities ? '2018-07-15 \\u00b7 monsoon core zone (regional, not block-resolved) \\u00b7 same regime prior for every farmer' : '';
-  selectProfile('A');
+  $('casesub').textContent='2018-07-15 \\u00b7 monsoon core zone (regional, not block-resolved) \\u00b7 same regime prior for every farmer';
+  applyPreset('A');   // opens on the rehearsed profile A, via the normal path
 }
 window.addEventListener('load', init);
 </script>
@@ -421,16 +583,41 @@ class Handler(http.server.BaseHTTPRequestHandler):
             except Exception as e:  # never crash the demo
                 self._send(500, json.dumps({"error": str(e)}).encode(), "application/json")
             return
+        if parsed.path == "/api/profile_options":
+            # Selector options AND the presets' field values, both generated
+            # from the schema. The UI holds no option literals and no copy of a
+            # preset's fields of its own (D-28).
+            try:
+                config = {
+                    "options": profile_option_values(),
+                    "presets": demo_preset_summaries(),
+                }
+                body = json.dumps(config).encode("utf-8")
+                self._send(200, body, "application/json")
+            except Exception as e:  # never crash the demo
+                self._send(500, json.dumps({"error": str(e), "kind": "internal"}).encode(),
+                           "application/json")
+            return
         if parsed.path == "/api/profile_decide":
             q = urllib.parse.parse_qs(parsed.query)
             try:
-                key = q.get("profile", ["A"])[0]
-                if key not in DEMO_PROFILES:
-                    raise ValueError(f"unknown profile {key!r}; have {list(DEMO_PROFILES)}")
-                body = json.dumps(_profile_payload(key)).encode("utf-8")
+                body = json.dumps(_profile_payload(q)).encode("utf-8")
                 self._send(200, body, "application/json")
+            except ProfileValidationError as e:
+                # A combination the schema rejects is NOT a server fault: 400,
+                # with the plain-language reason and nothing else. No traceback,
+                # no exception repr -- the client renders this text directly.
+                self._send(
+                    400,
+                    json.dumps({"error": str(e), "kind": "validation"}).encode("utf-8"),
+                    "application/json",
+                )
             except Exception as e:  # never crash the demo
-                self._send(500, json.dumps({"error": str(e)}).encode(), "application/json")
+                self._send(
+                    500,
+                    json.dumps({"error": str(e), "kind": "internal"}).encode("utf-8"),
+                    "application/json",
+                )
             return
         self._send(404, b"not found", "text/plain")
 

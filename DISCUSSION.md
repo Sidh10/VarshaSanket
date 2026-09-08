@@ -1632,6 +1632,60 @@ Multiplier tables are illustrative, not calibrated to farm-economics data. No pr
 
 ---
 
+### D-28: Free profile selection on `/profiles` — same screen, same decision path, swept exhaustively — **BUILT**
+
+Run: `python -m src.demo.server` → `http://localhost:8765/profiles` · sweep: `python -m src.demo.run_profiles_demo` · log `artifacts/demo_profiles_endtoend.txt`. Extends `src/demo/profiles.py` and `src/demo/server.py`; `decision_engine.py`, the `_assert_is_expectation()` guard, and Stages 1–2 are untouched.
+
+#### What changed
+
+D-27's screen offered four fixed profiles. It now also lets the operator choose each field. The presets remain, as one-click shortcuts that **populate the selectors** and submit through the ordinary path.
+
+#### Nothing the UI can express is a new code path — and that is counted, not asserted
+
+| | combinations | what happens |
+|---|---|---|
+| pre-sowing (crop × irrigation × soil × risk) | **81** | exactly the grid dumped in D-27; its per-crop 27-combo slices are what `check_guard_covers_profile_paths` drives through `_expected_loss()` / `_assert_is_expectation()` (D-26) |
+| already sown (+ 3 real growth stages) | **243** | short-circuits in `decision_applicability()` → `POST_SOWING_NOT_MODELLED` **before** `adjusted_economics()` or `decide()` is called. (`profile_multipliers()` — a pure table lookup — still runs; no economics, no expectation, no decision.) |
+| rejected by the schema | **324** | `FarmerProfile.__post_init__` refuses them: pre-sowing carrying a real stage, or sown carrying `NOT_APPLICABLE` |
+| **total the enums can express** | **648** | every one of them swept over real HTTP, every run |
+
+**The UI cannot invent a value.** `profile_option_values()` generates the option lists from `IrrigationAccess` / `SoilType` / `RiskPreference` / `SowingStatus` / `GrowthStage` and the keys of `CROP_DEFAULTS`; `demo_preset_summaries()` serves the presets' own field values. The page holds **zero quoted schema value literals** — including the sowing status that gates the growth-stage control, which is served as `sowing_status_requiring_stage` rather than typed into the JS. `check_no_schema_literals_in_page()` asserts this on every sweep run, so the page cannot drift from the schema.
+
+#### One decision path, proven rather than claimed
+
+`build_profile_payload()` (preset key) and `build_custom_profile_payload()` (chosen fields) are thin resolvers; both hand a `FarmerProfile` to **`_payload_for_profile()`**, the module's single `decide_for_profile()` call site. The sweep asserts that each preset's payload is **byte-identical** to the same fields entered freely (everything but the `profile` block, which legitimately carries the preset's key and prose label). All four matched. That is what rules out a second scoring path rather than merely intending not to have one.
+
+#### Coherence: the constructor stays the only authority
+
+`FarmerProfile.__post_init__`'s rule is *mirrored* by the UI (growth stage is rendered only when sowing status is sown, and offers only the sown-coherent stages), never *reimplemented*. `build_profile_from_fields()` catches the constructor's `ValueError` and chooses wording; the `if` that picks between the two messages selects phrasing for a failure the constructor already produced, and falls back to quoting the constructor's own message if a future rule change makes both shapes miss. A rejected combination returns **HTTP 400** with `kind: "validation"` and a plain-language reason — never a traceback, never an exception repr:
+
+> *"A farmer who has not sown yet has no crop in the ground, so 'germination' is not a stage they can be at. Set sowing status to 'sown' first, or leave the growth stage unset."*
+
+#### Area/district: a label, not a disabled control
+
+Deliberately **not** a greyed-out dropdown — a disabled selector still visually promises a choice is coming. A static line instead: *"Region: monsoon core zone (single region)"*, with the reason next to it — Stage 1 computes one MCZ-mean base rate (18–28°N, 66.5–88°E), so there is no per-district number underneath to choose between, and breaking it out would display spatial variation the pipeline does not produce (D-16, `src/delivery/risk_display.py`).
+
+#### Verification — the sweep replaced the determinism check
+
+D-27's check was "run four fixed cases five times, confirm the payload hash never moves." With open input that is the wrong shape of test: the question is no longer whether one case is stable but whether **every** reachable combination is either scored or cleanly refused. `run_profiles_demo.py` now boots the real server **in-process on an ephemeral port** (port 0 — so a stale demo server on 8765 cannot intercept the sweep and mask a failure, the D-27 hazard) and drives all 648 combinations through the real endpoint:
+
+```
+combinations swept        : 648
+  scored (SOW/WAIT)       : 81   [sow 3 / wait 78]
+  no-decision (sown)      : 243
+  refused (clean 400)     : 324
+  failures                : 0
+GATE: PASS -- every reachable combination is scored or cleanly refused
+```
+
+**Zero failures, zero tracebacks reaching the client.** The 3 SOW / 78 WAIT split independently reproduces D-27's grid dump (SOW appears only at rainfed + clay + risk-tolerant, one per crop), from a completely different code path — the HTTP endpoint rather than a direct Python loop. Presets A/B/C/D also still return their rehearsed recommendations (A SOW/fragile, B WAIT/robust, C WAIT/fragile, D no decision).
+
+#### Honest limits
+
+Unchanged from D-26/D-27: the multiplier tables are illustrative and uncalibrated; no profile personalises Stage 1's probabilities; the post-sowing action set is still not modelled — free selection now makes it reachable in 243 ways, and all 243 say so explicitly rather than guessing.
+
+---
+
 ## Handoff notes
 
 *(Append session notes here — what changed, what was decided, what the next agent should know.)*
